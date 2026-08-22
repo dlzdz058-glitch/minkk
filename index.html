@@ -1,0 +1,1736 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#17212b">
+<title>MINK — веб-мессенджер</title>
+<style>
+:root{
+  --accent-1:#3390EC;
+  --accent-2:#007AFF;
+  --bg-app:#ffffff;
+  --bg-sidebar:#ffffff;
+  --bg-chat:#e6ebee;
+  --border:#e4e7ea;
+  --text-main:#1c2733;
+  --text-muted:#7c8a97;
+  --bubble-out:#effdde;
+  --bubble-out-text:#1c2733;
+  --bubble-in:#ffffff;
+  --bubble-in-text:#1c2733;
+  --online:#4fc44f;
+  --glass-blur:20px;
+  --spring:cubic-bezier(0.32,0.72,0,1);
+}
+[data-theme="dark"]{
+  --bg-app:#0B0E14;
+  --bg-sidebar:#151A23;
+  --bg-chat:#0B0E14;
+  --border:rgba(255,255,255,.08);
+  --text-main:#EAEFF5;
+  --text-muted:#8A93A3;
+  --bubble-out:linear-gradient(135deg,#0A5FD6,#3390EC);
+  --bubble-out-text:#ffffff;
+  --bubble-in:#1B212C;
+  --bubble-in-text:#EAEFF5;
+}
+[data-theme="blue"]{
+  --bg-app:#f0f4f8;
+  --bg-sidebar:#17212b;
+  --bg-chat:#dceaf5;
+  --border:#1d2b39;
+  --text-main:#1c2733;
+  --text-muted:#8b98a5;
+  --bubble-out:#e1f4fd;
+  --bubble-out-text:#12222c;
+  --bubble-in:#ffffff;
+  --bubble-in-text:#12222c;
+}
+[data-theme="blue"] .sidebar{ --text-main:#e8edf1; --text-muted:#8b98a5; }
+
+*{box-sizing:border-box;}
+html,body{
+  height:100vh;
+  height:100dvh; /* динамическая высота вьюпорта — не уезжает под мобильную клавиатуру */
+  margin:0;
+}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  background:var(--bg-app);
+  color:var(--text-main);
+  overflow:hidden;
+  /* отступы под "чёлку"/скруглённые углы при viewport-fit=cover */
+  padding-left:env(safe-area-inset-left);
+  padding-right:env(safe-area-inset-right);
+}
+.hidden{display:none !important;}
+button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit;}
+input,textarea{font-family:inherit;color:inherit;}
+
+/* ---------- AUTH ---------- */
+.auth-screen{
+  height:100vh;
+  height:100dvh;
+  display:flex;align-items:center;justify-content:center;
+  background:linear-gradient(135deg,var(--accent-1),var(--accent-2));
+  padding:16px;
+}
+.auth-card{
+  width:340px;max-width:100%;background:#fff;border-radius:16px;padding:32px;text-align:center;
+  box-shadow:0 20px 60px rgba(0,0,0,.25);
+}
+.auth-logo{font-size:40px;margin-bottom:8px;}
+.auth-card h1{margin:0 0 4px;font-size:22px;}
+.auth-sub{color:#8b98a5;font-size:13px;margin:0 0 20px;}
+.auth-card input{
+  width:100%;padding:12px 14px;margin-bottom:10px;border-radius:10px;border:1px solid #e1e4e8;
+  font-size:14px;outline:none;
+}
+.auth-card input:focus{border-color:var(--accent-1);}
+.auth-buttons{display:flex;gap:8px;margin-top:6px;}
+.btn-primary{
+  flex:1;background:linear-gradient(135deg,var(--accent-1),var(--accent-2));color:#fff;
+  padding:11px;border-radius:10px;font-weight:600;font-size:14px;
+}
+.btn-secondary{
+  flex:1;background:#f0f2f5;color:#1c2733;padding:11px;border-radius:10px;font-weight:600;font-size:14px;
+}
+.btn-link{margin-top:12px;color:var(--accent-2);font-size:13px;background:none;}
+.btn-link-danger{color:#e05353;font-size:13px;}
+.auth-error{color:#e05353;font-size:12px;margin-top:10px;min-height:14px;}
+.full-width{width:100%;margin-top:14px;}
+
+/* ---------- APP LAYOUT ---------- */
+.app{
+  display:flex;
+  height:100vh;
+  height:100dvh;
+}
+.sidebar{
+  width:340px;min-width:280px;background:var(--bg-sidebar);border-right:1px solid var(--border);
+  display:flex;flex-direction:column;
+}
+[data-theme="dark"] .sidebar, [data-theme="blue"] .sidebar{color:#e8edf1;}
+.sidebar-header{
+  display:flex;align-items:center;gap:8px;padding:10px 12px;border-bottom:1px solid var(--border);
+}
+.search-wrap{flex:1;}
+#search-input{
+  width:100%;padding:8px 12px;border-radius:18px;border:none;background:rgba(127,127,127,.12);
+  color:inherit;font-size:14px;outline:none;
+}
+.icon-btn{
+  width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+  font-size:17px;flex-shrink:0;
+}
+.icon-btn:hover{background:rgba(127,127,127,.15);}
+.chat-list-wrap{flex:1;position:relative;min-height:0;}
+.chat-list{height:100%;overflow-y:auto;}
+.sidebar-empty-state{
+  position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  text-align:center;padding:0 24px;color:var(--text-muted);
+}
+.sidebar-empty-icon{font-size:44px;margin-bottom:10px;opacity:.6;}
+.sidebar-empty-state p{margin:0 0 16px;font-size:14.5px;}
+.sidebar-empty-state .btn-primary{padding:9px 22px;flex:none;}
+.search-result-item .chat-item-last{opacity:.7;}
+.search-no-results{padding:20px 16px;text-align:center;color:var(--text-muted);font-size:13.5px;}
+.settings-tag{font-size:12.5px;color:var(--text-muted);background:rgba(127,127,127,.12);padding:4px 10px;border-radius:10px;}
+.chat-item{
+  display:flex;align-items:center;gap:10px;padding:9px 12px;cursor:pointer;border-bottom:1px solid transparent;
+}
+.chat-item:hover{background:rgba(127,127,127,.08);}
+.chat-item.active{background:var(--accent-1);}
+.chat-item.active .chat-item-name,.chat-item.active .chat-item-last,.chat-item.active .chat-item-time{color:#fff;}
+.chat-item-body{flex:1;min-width:0;}
+.chat-item-top{display:flex;justify-content:space-between;align-items:baseline;}
+.chat-item-name{font-weight:600;font-size:14.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.chat-item-time{font-size:11.5px;color:var(--text-muted);flex-shrink:0;margin-left:6px;}
+.chat-item-last{font-size:13px;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.chat-item-badge{
+  background:var(--accent-1);color:#fff;font-size:11px;border-radius:10px;padding:1px 7px;margin-left:6px;flex-shrink:0;
+}
+
+/* avatars */
+.avatar{
+  width:44px;height:44px;border-radius:50%;flex-shrink:0;position:relative;
+  background:linear-gradient(135deg,#7f9cf5,#a78bfa);
+  background-size:cover;background-position:center;
+  display:flex;align-items:center;justify-content:center;color:#fff;font-weight:600;font-size:16px;
+}
+.avatar-sm{width:34px;height:34px;font-size:13px;}
+.avatar-md{width:42px;height:42px;font-size:15px;}
+.avatar-lg{width:88px;height:88px;font-size:30px;margin:0 auto;}
+.avatar-xl{width:110px;height:110px;font-size:38px;}
+.avatar .status-dot{
+  position:absolute;bottom:0;right:0;width:11px;height:11px;border-radius:50%;
+  background:var(--online);border:2px solid var(--bg-sidebar);
+}
+
+/* ---------- CHAT AREA ---------- */
+.chat-area{flex:1;display:flex;flex-direction:column;background:var(--bg-chat);position:relative;}
+.chat-empty{flex:1;display:flex;align-items:center;justify-content:center;color:var(--text-muted);}
+.chat-empty-inner{text-align:center;}
+.chat-empty-icon{font-size:48px;margin-bottom:10px;opacity:.5;}
+.chat-window{flex:1;display:flex;flex-direction:column;min-height:0;}
+
+.chat-header{
+  display:flex;align-items:center;justify-content:space-between;padding:8px 16px;
+  background:var(--bg-sidebar);border-bottom:1px solid var(--border);
+}
+.chat-header-info{display:flex;align-items:center;gap:10px;}
+.chat-peer-name{font-weight:600;font-size:15px;}
+.chat-peer-status{font-size:12.5px;color:var(--text-muted);}
+.chat-header-actions{display:flex;gap:4px;}
+
+.messages{flex:1;overflow-y:auto;padding:16px 8%;display:flex;flex-direction:column;gap:4px;}
+.msg-row{display:flex;max-width:60%;}
+.msg-row.out{align-self:flex-end;justify-content:flex-end;}
+.msg-row.in{align-self:flex-start;}
+.bubble{
+  padding:7px 10px;border-radius:14px;font-size:14.5px;line-height:1.35;position:relative;
+  word-wrap:break-word;
+}
+.msg-row.out .bubble{background:var(--bubble-out);color:var(--bubble-out-text);border-bottom-right-radius:4px;}
+.msg-row.in .bubble{background:var(--bubble-in);color:var(--bubble-in-text);border-bottom-left-radius:4px;box-shadow:0 1px 1px rgba(0,0,0,.05);}
+.msg-time{font-size:10.5px;color:var(--text-muted);margin-left:8px;float:right;margin-top:4px;}
+.msg-row.out .msg-time{color:#5a7a5a;}
+
+/* voice player bubble */
+.voice-player{display:flex;align-items:center;gap:8px;min-width:190px;}
+.voice-play-btn{
+  width:34px;height:34px;border-radius:50%;background:var(--accent-1);color:#fff;
+  display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;
+}
+.voice-wave{flex:1;height:24px;position:relative;background:
+  repeating-linear-gradient(90deg,currentColor 0 2px,transparent 2px 4px);
+  opacity:.35;border-radius:2px;}
+.voice-progress{position:absolute;inset:0;background:var(--accent-1);opacity:.5;width:0%;border-radius:2px;}
+.voice-duration{font-size:11px;color:var(--text-muted);flex-shrink:0;}
+
+/* round video message */
+.video-circle-msg{
+  width:180px;height:180px;border-radius:50%;object-fit:cover;background:#000;
+  border:3px solid var(--accent-1);cursor:pointer;
+}
+
+.video-circle-preview{
+  width:160px;height:160px;border-radius:50%;object-fit:cover;position:absolute;
+  bottom:80px;left:50%;transform:translateX(-50%);border:3px solid #e05353;background:#000;z-index:5;
+}
+
+.record-bar{
+  display:flex;align-items:center;justify-content:space-between;padding:10px 16px;
+  background:var(--bg-sidebar);border-top:1px solid var(--border);
+}
+.record-indicator{display:flex;align-items:center;gap:8px;font-size:13.5px;}
+.record-dot{width:10px;height:10px;border-radius:50%;background:#e05353;animation:pulse 1s infinite;}
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:.3;}}
+#record-hint{color:var(--text-muted);}
+
+.composer{
+  display:flex;align-items:flex-end;gap:4px;padding:8px 12px;background:var(--bg-sidebar);
+  border-top:1px solid var(--border);
+}
+#msg-input{
+  flex:1;resize:none;border:none;outline:none;background:rgba(127,127,127,.1);
+  border-radius:18px;padding:9px 14px;font-size:14.5px;max-height:120px;color:inherit;
+}
+.mic-btn.recording{background:#e05353;color:#fff;}
+
+/* ---------- MODALS ---------- */
+.modal-overlay{
+  position:fixed;inset:0;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;z-index:50;
+}
+.modal{
+  width:380px;max-height:88vh;overflow-y:auto;background:var(--bg-app);color:var(--text-main);border-radius:14px;
+}
+.modal-header{
+  display:flex;justify-content:space-between;align-items:center;padding:16px 18px;border-bottom:1px solid var(--border);
+}
+.modal-header h2{margin:0;font-size:17px;}
+.modal-close{font-size:16px;color:var(--text-muted);}
+.modal-body{padding:18px;}
+.settings-avatar-row{display:flex;flex-direction:column;align-items:center;gap:10px;margin-bottom:18px;}
+.file-label{display:inline-block;font-size:13px;}
+.hidden-input{display:none;}
+.field-label{display:block;font-size:12.5px;color:var(--text-muted);margin:12px 0 4px;}
+#settings-name,#settings-bio{
+  width:100%;padding:10px 12px;border-radius:10px;border:1px solid var(--border);background:transparent;
+  color:inherit;font-size:14px;outline:none;
+}
+#settings-name:focus,#settings-bio:focus{border-color:var(--accent-1);}
+.theme-options{display:flex;gap:12px;margin-top:6px;}
+.theme-swatch{width:40px;height:40px;border-radius:50%;border:2px solid transparent;}
+.theme-swatch.theme-light{background:#f0f4f8;}
+.theme-swatch.theme-dark{background:#17212b;}
+.theme-swatch.theme-blue{background:linear-gradient(135deg,#2AABEE,#17212b);}
+.theme-swatch.selected{border-color:var(--accent-1);}
+
+/* ---------- CALL MODAL ---------- */
+.call-modal{
+  width:340px;background:#17212b;color:#fff;border-radius:18px;padding:28px 20px;text-align:center;
+}
+.call-status{font-size:13px;color:#8b98a5;margin-bottom:4px;}
+.call-peer-name{font-size:19px;font-weight:600;margin-bottom:18px;}
+.call-video-wrap{position:relative;height:220px;display:flex;align-items:center;justify-content:center;margin-bottom:20px;}
+.call-avatar{margin:0 auto;}
+.remote-video{width:100%;height:220px;object-fit:cover;border-radius:12px;background:#000;}
+.local-video{
+  position:absolute;bottom:8px;right:8px;width:80px;height:100px;object-fit:cover;border-radius:8px;
+  background:#000;border:2px solid #fff;
+}
+.call-controls{display:flex;justify-content:center;gap:18px;}
+.call-btn{
+  width:56px;height:56px;border-radius:50%;font-size:20px;display:flex;align-items:center;justify-content:center;
+}
+.call-btn-accept{background:#4fc44f;color:#fff;}
+.call-btn-decline{background:#e05353;color:#fff;}
+.call-btn-mute{background:rgba(255,255,255,.15);color:#fff;}
+.call-btn-mute.muted{background:#e05353;}
+
+/* scrollbars */
+.chat-list::-webkit-scrollbar,.messages::-webkit-scrollbar,.modal::-webkit-scrollbar{width:6px;}
+.chat-list::-webkit-scrollbar-thumb,.messages::-webkit-scrollbar-thumb{background:rgba(127,127,127,.3);border-radius:3px;}
+
+.icon-btn.back-btn{
+  display:none; /* по умолчанию скрыта — включается в мобильном media query ниже */
+  background:var(--accent-1);
+  color:#fff;
+  margin-right:2px;
+  flex-shrink:0;
+}
+.icon-btn.back-btn:hover{background:var(--accent-2);}
+
+/* ---------- RESPONSIVE: ПК/планшеты >=768px — сайдбар + чат одновременно ---------- */
+@media (min-width:768px){
+  .sidebar{width:340px;min-width:320px;max-width:350px;}
+  .icon-btn.back-btn{display:none !important;}
+}
+
+/* ---------- RESPONSIVE: телефоны <768px — только один экран за раз ---------- */
+@media (max-width:767px){
+  .app{position:relative;overflow:hidden;}
+  .sidebar{width:100%;min-width:0;}
+  .chat-area{width:100%;}
+
+  /* по умолчанию на телефоне открыт список чатов, окно переписки скрыто */
+  #app:not(.chat-active) .chat-area{display:none;}
+  /* когда чат открыт (JS добавляет .chat-active на #app) — прячем список, показываем переписку */
+  #app.chat-active .sidebar{display:none;}
+
+  .icon-btn.back-btn{display:flex;}
+  .msg-row{max-width:82%;}
+  .modal{width:92vw;max-width:380px;}
+  .call-modal{width:88vw;max-width:340px;}
+  .video-circle-preview{width:130px;height:130px;bottom:88px;}
+}
+
+/* ============================================================================
+   ФИНАЛЬНАЯ ПОЛИРОВКА: iOS-плавность, glassmorphism, микро-анимации, бейджи
+   ============================================================================ */
+
+/* --- плавная прокрутка + кастомный тонкий скроллбар --- */
+.chat-list,.messages,.modal{
+  scroll-behavior:smooth;
+  scrollbar-width:thin;
+  scrollbar-color:rgba(127,127,127,.35) transparent;
+}
+.chat-list::-webkit-scrollbar,.messages::-webkit-scrollbar,.modal::-webkit-scrollbar{width:5px;}
+.chat-list::-webkit-scrollbar-thumb,.messages::-webkit-scrollbar-thumb,.modal::-webkit-scrollbar-thumb{
+  background:rgba(127,127,127,.35);border-radius:3px;background-clip:padding-box;
+}
+.chat-list::-webkit-scrollbar-track,.messages::-webkit-scrollbar-track,.modal::-webkit-scrollbar-track{background:transparent;}
+
+/* --- micro-interactions: лёгкое сжатие при тапе на кликабельных элементах --- */
+.icon-btn,.btn-primary,.btn-secondary,.btn-link,.btn-link-danger,.chat-item,.theme-swatch,
+.call-btn,.avatar[role="button"],button.avatar,.toggle-switch{
+  transition:transform .16s var(--spring), background-color .2s ease, opacity .2s ease, box-shadow .2s ease;
+}
+.icon-btn:active,.btn-primary:active,.btn-secondary:active,.chat-item:active,
+.theme-swatch:active,.call-btn:active,button.avatar:active{
+  transform:scale(.97);
+}
+
+/* --- glass-эффект для шапки, композера и хедера сайдбара --- */
+.chat-header,.composer,.sidebar-header{
+  -webkit-backdrop-filter:blur(var(--glass-blur));
+  backdrop-filter:blur(var(--glass-blur));
+  background:color-mix(in srgb, var(--bg-sidebar) 82%, transparent);
+}
+
+/* --- плавная смена экранов чат-лист / диалог (translate3d + spring) --- */
+.chat-window{
+  animation:chatWindowIn .35s var(--spring);
+}
+@keyframes chatWindowIn{
+  from{ transform:translate3d(24px,0,0); opacity:0; }
+  to{ transform:translate3d(0,0,0); opacity:1; }
+}
+@media (max-width:767px){
+  .sidebar,.chat-area{
+    transition:transform .35s var(--spring);
+    will-change:transform;
+  }
+  #app.chat-active .chat-area{ transform:translate3d(0,0,0); }
+  #app:not(.chat-active) .chat-area{ transform:translate3d(100%,0,0); }
+}
+
+/* --- пружинящее появление модалок --- */
+.modal-overlay{
+  animation:overlayFade .25s ease;
+}
+@keyframes overlayFade{ from{ opacity:0; } to{ opacity:1; } }
+.modal,.call-modal{
+  animation:modalSpring .38s var(--spring);
+  transform-origin:center;
+}
+@keyframes modalSpring{
+  0%{ transform:scale(.85) translateY(16px); opacity:0; }
+  60%{ transform:scale(1.02) translateY(-2px); opacity:1; }
+  100%{ transform:scale(1) translateY(0); opacity:1; }
+}
+
+/* --- появление новых сообщений --- */
+.msg-row{
+  animation:msgIn .3s var(--spring);
+}
+@keyframes msgIn{
+  from{ transform:translate3d(0,10px,0) scale(.97); opacity:0; }
+  to{ transform:translate3d(0,0,0) scale(1); opacity:1; }
+}
+
+/* --- появление элементов списка чатов --- */
+.chat-item{
+  animation:itemIn .28s var(--spring);
+}
+@keyframes itemIn{
+  from{ opacity:0; transform:translate3d(0,6px,0); }
+  to{ opacity:1; transform:translate3d(0,0,0); }
+}
+
+/* ---------- ПРЕМИУМ-БЕЙДЖИ ---------- */
+.badge{
+  display:inline-flex;align-items:center;justify-content:center;
+  font-size:10px;font-weight:800;letter-spacing:.3px;line-height:1;
+  padding:2.5px 5px;border-radius:6px;margin-left:4px;flex-shrink:0;
+  vertical-align:middle;
+  box-shadow:0 1px 3px rgba(0,0,0,.25);
+}
+.badge-verified{
+  background:var(--accent-2);color:#fff;border-radius:50%;width:15px;height:15px;padding:0;font-size:10px;
+}
+.badge-admin{ background:linear-gradient(135deg,#FF3B30,#FFD60A); color:#1a1200; }
+.badge-moder{ background:linear-gradient(135deg,#5E5CE6,#AF52DE); color:#fff; }
+.badge-dev{ background:linear-gradient(135deg,#30D158,#00E5A0); color:#062712; text-shadow:0 0 6px rgba(0,255,170,.5); }
+.chat-item-name .badge,.chat-peer-name .badge,.msg-sender-name .badge{ transform:translateY(-1px); }
+.msg-sender-badges{ display:inline-flex; align-items:center; margin-right:6px; }
+
+/* ---------- НАСТРОЙКИ: УПРАВЛЕНИЕ БЕЙДЖАМИ (только владелец) ---------- */
+.badge-admin-section{
+  margin-top:22px;padding-top:16px;border-top:1px dashed var(--border);
+}
+.badge-admin-title{
+  display:flex;align-items:center;gap:6px;font-size:13px;font-weight:700;
+  color:var(--accent-2);margin-bottom:12px;text-transform:uppercase;letter-spacing:.4px;
+}
+.badge-toggle-row{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:10px 0;border-bottom:1px solid var(--border);
+}
+.badge-toggle-row:last-child{border-bottom:none;}
+.badge-toggle-label{display:flex;align-items:center;gap:8px;font-size:14px;}
+.toggle-switch{
+  position:relative;width:42px;height:24px;border-radius:14px;background:rgba(127,127,127,.3);
+  flex-shrink:0;
+}
+.toggle-switch::after{
+  content:"";position:absolute;top:2px;left:2px;width:20px;height:20px;border-radius:50%;
+  background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.3);
+  transition:transform .25s var(--spring);
+}
+.toggle-switch.on{ background:var(--accent-2); }
+.toggle-switch.on::after{ transform:translateX(18px); }
+
+/* ---------- ПРЕМИУМ AUTH / ОНБОРДИНГ ---------- */
+.auth-screen{
+  background:radial-gradient(circle at 30% 20%, #1c3a63 0%, #0B0E14 55%),
+             linear-gradient(160deg,#0B0E14,#151A23);
+  overflow-y:auto;padding:32px 16px;
+}
+.auth-card{
+  width:360px;background:rgba(21,26,35,.72);
+  -webkit-backdrop-filter:blur(24px);backdrop-filter:blur(24px);
+  border:1px solid rgba(255,255,255,.08);
+  border-radius:22px;padding:34px 28px;color:#EAEFF5;
+  box-shadow:0 24px 70px rgba(0,0,0,.5);
+}
+.auth-logo{
+  width:60px;height:60px;margin:0 auto 12px;border-radius:18px;
+  background:linear-gradient(135deg,var(--accent-1),var(--accent-2));
+  display:flex;align-items:center;justify-content:center;font-size:28px;
+  box-shadow:0 8px 24px rgba(51,144,236,.4);
+}
+.auth-card h1{color:#fff;letter-spacing:.5px;}
+.auth-sub{color:#8A93A3;}
+.auth-field{position:relative;margin-bottom:10px;}
+.auth-field .field-icon{
+  position:absolute;left:13px;top:50%;transform:translateY(-50%);opacity:.55;font-size:14px;
+}
+.auth-card input{
+  background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);color:#fff;
+  padding-left:36px;margin-bottom:0;
+}
+.auth-card input::placeholder{color:#6b7684;}
+.auth-card input:focus{border-color:var(--accent-2);background:rgba(255,255,255,.09);}
+.btn-secondary{background:rgba(255,255,255,.08);color:#EAEFF5;}
+.btn-link{color:var(--accent-1);}
+
+.onboard-toggle{
+  margin-top:16px;font-size:12.5px;color:#8A93A3;background:none;text-decoration:underline;
+  text-underline-offset:2px;
+}
+.onboard-block{
+  margin-top:16px;text-align:left;display:none;
+}
+.onboard-block.open{display:block;animation:itemIn .3s var(--spring);}
+.onboard-title{font-size:13px;font-weight:700;color:#fff;margin-bottom:10px;}
+.onboard-step{
+  display:flex;align-items:flex-start;gap:10px;background:rgba(255,255,255,.05);
+  border:1px solid rgba(255,255,255,.06);border-radius:12px;padding:10px 12px;margin-bottom:8px;
+}
+.onboard-step-num{
+  width:22px;height:22px;border-radius:50%;background:linear-gradient(135deg,var(--accent-1),var(--accent-2));
+  color:#fff;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;
+}
+.onboard-step-text{font-size:12.5px;color:#c4cad4;line-height:1.4;}
+.onboard-step-text b{color:#fff;}
+
+/* ---------- ПУСТОЙ СПИСОК ЧАТОВ: премиум-иллюстрация ---------- */
+.sidebar-empty-illustration{
+  width:96px;height:96px;border-radius:28px;margin-bottom:16px;
+  background:linear-gradient(135deg,var(--accent-1),var(--accent-2));
+  display:flex;align-items:center;justify-content:center;font-size:40px;color:#fff;
+  box-shadow:0 14px 34px rgba(51,144,236,.35);
+}
+.sidebar-empty-state h3{margin:0 0 6px;font-size:16px;color:var(--text-main);}
+.sidebar-empty-state p{max-width:230px;}
+
+</style>
+</head>
+<body>
+
+<div id="auth-screen" class="auth-screen">
+  <div class="auth-card">
+    <div class="auth-logo">✈</div>
+    <h1>MINK</h1>
+    <p class="auth-sub">Войдите, чтобы начать общение</p>
+    <div class="auth-field">
+      <span class="field-icon">✉</span>
+      <input id="auth-email" type="email" placeholder="Email" autocomplete="email">
+    </div>
+    <div class="auth-field">
+      <span class="field-icon">🔒</span>
+      <input id="auth-password" type="password" placeholder="Пароль" autocomplete="current-password">
+    </div>
+    <div class="auth-buttons">
+      <button id="btn-login" class="btn-primary">Войти</button>
+      <button id="btn-register" class="btn-secondary">Регистрация</button>
+    </div>
+    <button id="btn-anon" class="btn-link">Войти анонимно (демо)</button>
+    <p id="auth-error" class="auth-error"></p>
+
+    <button id="btn-onboard-toggle" class="onboard-toggle" type="button">Как найти друга? ›</button>
+    <div id="onboard-block" class="onboard-block">
+      <div class="onboard-title">Как найти друга</div>
+      <div class="onboard-step">
+        <div class="onboard-step-num">1</div>
+        <div class="onboard-step-text">Нажмите на <b>поиск 🔍</b> вверху списка чатов.</div>
+      </div>
+      <div class="onboard-step">
+        <div class="onboard-step-num">2</div>
+        <div class="onboard-step-text">Введите уникальный <b>MINK ID</b> друга (например: <b>MINK-784920</b>) или его имя.</div>
+      </div>
+      <div class="onboard-step">
+        <div class="onboard-step-num">3</div>
+        <div class="onboard-step-text">Нажмите на профиль из списка и начните общение!</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="app" class="app hidden">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="sidebar-header">
+      <button id="btn-profile-avatar" class="avatar avatar-sm" title="Профиль"></button>
+      <div class="search-wrap">
+        <input id="search-input" type="text" placeholder="Поиск по имени или MINK-ID">
+      </div>
+      <button id="btn-open-settings" class="icon-btn" title="Настройки">⚙</button>
+    </div>
+    <div class="chat-list-wrap">
+      <div id="chat-list" class="chat-list"></div>
+      <div id="sidebar-empty-state" class="sidebar-empty-state hidden">
+        <div class="sidebar-empty-illustration">💬</div>
+        <h3>У вас пока нет чатов</h3>
+        <p>Введите MINK ID друга в поиске, чтобы начать переписку</p>
+        <button id="btn-go-search" class="btn-primary">Найти друзей</button>
+      </div>
+    </div>
+  </aside>
+
+  <!-- CHAT AREA -->
+  <main class="chat-area">
+    <div id="chat-empty" class="chat-empty">
+      <div class="chat-empty-inner">
+        <div class="chat-empty-icon">✈</div>
+        <p>Выберите чат, чтобы начать переписку</p>
+      </div>
+    </div>
+
+    <div id="chat-window" class="chat-window hidden">
+      <header class="chat-header">
+        <div class="chat-header-info">
+          <button id="btn-back-to-list" class="icon-btn back-btn" title="Назад к чатам">←</button>
+          <button id="btn-peer-avatar" class="avatar avatar-md"></button>
+          <div>
+            <div id="chat-peer-name" class="chat-peer-name"></div>
+            <div id="chat-peer-status" class="chat-peer-status"></div>
+          </div>
+        </div>
+        <div class="chat-header-actions">
+          <button id="btn-call-audio" class="icon-btn" title="Звонок">📞</button>
+          <button id="btn-call-video" class="icon-btn" title="Видеозвонок">🎥</button>
+        </div>
+      </header>
+
+      <div id="messages" class="messages"></div>
+
+      <div id="record-bar" class="record-bar hidden">
+        <div class="record-indicator">
+          <span class="record-dot"></span>
+          <span id="record-timer">00:00</span>
+          <span id="record-hint">Запись... отпустите для отправки</span>
+        </div>
+        <button id="btn-record-cancel" class="btn-link-danger">Отменить</button>
+      </div>
+
+      <video id="video-circle-preview" class="video-circle-preview hidden" autoplay muted playsinline></video>
+
+      <footer class="composer">
+        <button id="btn-attach" class="icon-btn" title="Прикрепить">📎</button>
+        <textarea id="msg-input" placeholder="Написать сообщение..." rows="1"></textarea>
+        <button id="btn-video-circle" class="icon-btn" title="Видео-кружочек (клик — начать/остановить)">🎥</button>
+        <button id="btn-mic" class="icon-btn mic-btn" title="Зажмите для голосового">🎙</button>
+        <button id="btn-send" class="icon-btn send-btn hidden" title="Отправить">➤</button>
+      </footer>
+    </div>
+  </main>
+</div>
+
+<!-- SETTINGS MODAL -->
+<div id="settings-modal" class="modal-overlay hidden">
+  <div class="modal">
+    <div class="modal-header">
+      <h2>Настройки профиля</h2>
+      <button class="modal-close" data-close="settings-modal">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="settings-avatar-row">
+        <button id="settings-avatar-preview" class="avatar avatar-lg"></button>
+        <label class="btn-secondary file-label">
+          Изменить фото
+          <input id="settings-avatar-input" type="file" accept="image/*" class="hidden-input">
+        </label>
+        <div id="settings-tag" class="settings-tag" title="Поделитесь этим ID, чтобы вас нашли"></div>
+      </div>
+      <label class="field-label">Имя</label>
+      <input id="settings-name" type="text" placeholder="Ваше имя">
+      <label class="field-label">Био</label>
+      <textarea id="settings-bio" rows="3" placeholder="О себе"></textarea>
+      <label class="field-label">Тема оформления</label>
+      <div class="theme-options">
+        <button class="theme-swatch theme-light" data-theme="light" title="Светлая"></button>
+        <button class="theme-swatch theme-dark" data-theme="dark" title="Тёмная"></button>
+        <button class="theme-swatch theme-blue" data-theme="blue" title="Telegram Blue"></button>
+      </div>
+      <div id="badge-admin-section" class="badge-admin-section hidden">
+        <div class="badge-admin-title">⭐ Управление бейджиками</div>
+        <div class="badge-toggle-row">
+          <span class="badge-toggle-label"><span class="badge badge-verified">✓</span> Синяя галочка верификации</span>
+          <button type="button" class="toggle-switch" data-badge="verified"></button>
+        </div>
+        <div class="badge-toggle-row">
+          <span class="badge-toggle-label"><span class="badge badge-admin">ADMIN</span></span>
+          <button type="button" class="toggle-switch" data-badge="admin"></button>
+        </div>
+        <div class="badge-toggle-row">
+          <span class="badge-toggle-label"><span class="badge badge-moder">MODER</span></span>
+          <button type="button" class="toggle-switch" data-badge="moder"></button>
+        </div>
+        <div class="badge-toggle-row">
+          <span class="badge-toggle-label"><span class="badge badge-dev">DEV</span></span>
+          <button type="button" class="toggle-switch" data-badge="developer"></button>
+        </div>
+      </div>
+      <button id="btn-save-settings" class="btn-primary full-width">Сохранить</button>
+      <button id="btn-logout" class="btn-link-danger full-width">Выйти из аккаунта</button>
+    </div>
+  </div>
+</div>
+
+<!-- CALL MODAL -->
+<div id="call-modal" class="modal-overlay hidden">
+  <div class="call-modal">
+    <div id="call-status" class="call-status">Вызов...</div>
+    <div id="call-peer-name" class="call-peer-name"></div>
+    <div class="call-video-wrap">
+      <video id="remote-video" class="remote-video hidden" autoplay playsinline></video>
+      <video id="local-video" class="local-video hidden" autoplay muted playsinline></video>
+      <div id="call-avatar-big" class="avatar avatar-xl call-avatar"></div>
+    </div>
+    <div class="call-controls">
+      <button id="btn-call-accept" class="call-btn call-btn-accept hidden">✓</button>
+      <button id="btn-call-decline" class="call-btn call-btn-decline">✕</button>
+      <button id="btn-call-mute" class="call-btn call-btn-mute hidden">🎙</button>
+    </div>
+  </div>
+</div>
+
+<audio id="ringtone" loop>
+  <!-- звук звонка можно подключить своим файлом -->
+</audio>
+
+<script type="module">
+// ============================================================================
+// MINK — фронтенд веб-мессенджера на Firebase SDK v10 (Modular)
+// Auth + Realtime Database (чаты/сообщения/presence) + Storage (voice/video)
+// + WebRTC P2P звонки с сигнализацией через Realtime Database
+// ============================================================================
+
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
+import {
+  getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword,
+  signInAnonymously, onAuthStateChanged, signOut, updateProfile
+} from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
+import {
+  getDatabase, ref, set, get, push, update, onValue, onChildAdded,
+  serverTimestamp, query, orderByChild, limitToLast, onDisconnect, off, remove
+} from "https://www.gstatic.com/firebasejs/10.13.0/firebase-database.js";
+import {
+  getStorage, ref as sRef, uploadBytes, getDownloadURL
+} from "https://www.gstatic.com/firebasejs/10.13.0/firebase-storage.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyBwhx3lPs4Se6rmK9Yo8qvUBlwrwKFKAh8",
+  authDomain: "mink-332d7.firebaseapp.com",
+  databaseURL: "https://mink-332d7-default-rtdb.firebaseio.com",
+  projectId: "mink-332d7",
+  storageBucket: "mink-332d7.firebasestorage.app",
+  messagingSenderId: "121212917595",
+  appId: "1:121212917595:web:1b30b7324fc11ecddaec7e"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getDatabase(app);
+const storage = getStorage(app);
+
+// ----------------------------------------------------------------------------
+// Глобальное состояние приложения
+// ----------------------------------------------------------------------------
+const state = {
+  user: null,               // { uid, name, bio, avatarURL, theme }
+  chats: {},                // chatId -> {peer, lastMessage, lastTime, unread}
+  activeChatId: null,
+  activePeer: null,
+  messagesUnsub: null,
+  usersUnsub: null,
+
+  // media recording
+  mediaRecorder: null,
+  recordedChunks: [],
+  recordingType: null,      // 'voice' | 'video'
+  recordStream: null,
+  recordStartTime: 0,
+  recordTimerInterval: null,
+
+  // webrtc
+  pc: null,
+  localStream: null,
+  currentCallId: null,
+  callType: null,            // 'audio' | 'video'
+  isCaller: false,
+  candidatesUnsubs: []
+};
+
+const ICE_SERVERS = {
+  iceServers: [
+    { urls: "stun:stun.l.google.com:19302" },
+    { urls: "stun:stun1.l.google.com:19302" }
+  ]
+};
+
+const $ = (id) => document.getElementById(id);
+
+// MINK ID владельца/создателя приложения — только этому тегу доступна панель бейджиков
+const OWNER_TAG = "MINK-493446";
+
+// ----------------------------------------------------------------------------
+// Онбординг "Как найти друга?" на экране входа
+// ----------------------------------------------------------------------------
+$("btn-onboard-toggle").addEventListener("click", () => {
+  const block = $("onboard-block");
+  const open = block.classList.toggle("open");
+  $("btn-onboard-toggle").textContent = open ? "Как найти друга? ⌄" : "Как найти друга? ›";
+});
+
+// ----------------------------------------------------------------------------
+// БЕЙДЖИ: рендер значков рядом с именем (верификация/admin/moder/dev)
+// ----------------------------------------------------------------------------
+function getBadgesHTML(userLike) {
+  const b = userLike && userLike.badges;
+  if (!b) return "";
+  let html = "";
+  if (b.verified) html += `<span class="badge badge-verified" title="Verified">✓</span>`;
+  if (b.admin) html += `<span class="badge badge-admin" title="Admin">ADMIN</span>`;
+  if (b.moder) html += `<span class="badge badge-moder" title="Moderator">MOD</span>`;
+  if (b.developer) html += `<span class="badge badge-dev" title="Developer">DEV</span>`;
+  return html;
+}
+
+// ----------------------------------------------------------------------------
+// АДАПТИВНЫЙ LAYOUT: на экранах <768px показываем список чатов ИЛИ переписку,
+// на ПК/планшетах (>=768px) — оба блока одновременно (см. media queries в CSS)
+// ----------------------------------------------------------------------------
+const MOBILE_BREAKPOINT = "(max-width: 767px)";
+function isMobileViewport() {
+  return window.matchMedia(MOBILE_BREAKPOINT).matches;
+}
+
+$("btn-back-to-list").addEventListener("click", () => {
+  $("app").classList.remove("chat-active");
+});
+
+// если пользователь повернул телефон в альбомную ориентацию/растянул окно
+// до размеров планшета — убираем мобильный режим "один экран", чтобы не
+// оставался пустой скрытый сайдбар
+window.matchMedia(MOBILE_BREAKPOINT).addEventListener("change", (e) => {
+  if (!e.matches) $("app").classList.remove("chat-active");
+});
+
+// ----------------------------------------------------------------------------
+// AUTH
+// ----------------------------------------------------------------------------
+$("btn-login").addEventListener("click", async () => {
+  const email = $("auth-email").value.trim();
+  const password = $("auth-password").value;
+  try {
+    await signInWithEmailAndPassword(auth, email, password);
+  } catch (e) { showAuthError(e); }
+});
+
+$("btn-register").addEventListener("click", async () => {
+  const email = $("auth-email").value.trim();
+  const password = $("auth-password").value;
+  try {
+    const cred = await createUserWithEmailAndPassword(auth, email, password);
+    await initUserProfile(cred.user, email.split("@")[0]);
+  } catch (e) { showAuthError(e); }
+});
+
+$("btn-anon").addEventListener("click", async () => {
+  try {
+    const cred = await signInAnonymously(auth);
+    await initUserProfile(cred.user, "Гость-" + cred.user.uid.slice(0, 4));
+  } catch (e) { showAuthError(e); }
+});
+
+function showAuthError(e) {
+  $("auth-error").textContent = humanizeFirebaseError(e.code || e.message);
+}
+function humanizeFirebaseError(code) {
+  const map = {
+    "auth/user-not-found": "Пользователь не найден",
+    "auth/wrong-password": "Неверный пароль",
+    "auth/email-already-in-use": "Email уже зарегистрирован",
+    "auth/weak-password": "Пароль слишком короткий (мин. 6 символов)",
+    "auth/invalid-email": "Некорректный email"
+  };
+  return map[code] || ("Ошибка: " + code);
+}
+
+// Генерирует уникальный (в разумных пределах) красивый тег вида MINK-492018
+function generateMinkTag() {
+  const digits = String(Math.floor(100000 + Math.random() * 900000));
+  return "MINK-" + digits;
+}
+
+async function initUserProfile(fbUser, defaultName) {
+  const userRef = ref(db, "users/" + fbUser.uid);
+  const snap = await get(userRef);
+  if (!snap.exists()) {
+    await set(userRef, {
+      name: defaultName,
+      tag: generateMinkTag(),
+      bio: "Привет! Я использую MINK.",
+      avatarURL: "",
+      theme: "light",
+      online: true,
+      lastSeen: serverTimestamp()
+    });
+  }
+}
+
+onAuthStateChanged(auth, async (fbUser) => {
+  if (fbUser) {
+    // Сразу переключаем экран — независимо от того, успеет ли загрузиться
+    // профиль из Realtime Database. Иначе при ошибке чтения (например,
+    // ещё не настроены правила доступа) весь колбэк обрывался на await
+    // и экран авторизации оставался висеть.
+    $("auth-screen").classList.add("hidden");
+    $("app").classList.remove("hidden");
+
+    // запасной профиль на случай, если БД недоступна/правила не настроены
+    let profile = {
+      name: fbUser.email ? fbUser.email.split("@")[0] : "Гость",
+      bio: "", avatarURL: "", theme: "light"
+    };
+
+    try {
+      const userRef = ref(db, "users/" + fbUser.uid);
+      const snap = await get(userRef);
+      if (snap.exists()) {
+        profile = snap.val();
+        if (!profile.tag) {
+          // на случай аккаунтов, созданных до появления MINK-ID — доводим их до актуальной схемы
+          const tag = generateMinkTag();
+          await update(userRef, { tag });
+          profile.tag = tag;
+        }
+      } else {
+        // профиля ещё нет (например, только что зарегистрировались) — создаём с новым MINK-ID
+        const tag = generateMinkTag();
+        await set(userRef, {
+          name: profile.name, tag, bio: "Привет! Я использую MINK.",
+          avatarURL: "", theme: "light", online: true, lastSeen: serverTimestamp()
+        });
+        profile = { ...profile, tag, bio: "Привет! Я использую MINK." };
+      }
+    } catch (e) {
+      console.error("Не удалось загрузить профиль из Realtime Database:", e);
+      $("auth-error").textContent =
+        "Вход выполнен, но не удалось загрузить профиль (проверьте правила Realtime Database): " + (e.code || e.message);
+    }
+
+    state.user = { uid: fbUser.uid, ...profile };
+    applyTheme(state.user.theme || "light");
+    renderOwnAvatar();
+
+    try { setupPresence(fbUser.uid); } catch (e) { console.error("Presence error:", e); }
+    try { subscribeAllUsersCache(); } catch (e) { console.error("User cache error:", e); }
+    try { subscribeMyChats(); } catch (e) { console.error("Chat list error:", e); }
+    try { subscribeGlobalIncomingCalls(); } catch (e) { console.error("Calls listener error:", e); }
+  } else {
+    state.user = null;
+    $("auth-screen").classList.remove("hidden");
+    $("app").classList.add("hidden");
+  }
+});
+
+$("btn-logout").addEventListener("click", async () => {
+  if (state.user) await update(ref(db, "users/" + state.user.uid), { online: false, lastSeen: serverTimestamp() });
+  await signOut(auth);
+  closeModal("settings-modal");
+});
+
+// presence: онлайн/оффлайн через onDisconnect
+function setupPresence(uid) {
+  const statusRef = ref(db, "users/" + uid);
+  const connectedRef = ref(db, ".info/connected");
+  onValue(connectedRef, (snap) => {
+    if (snap.val() === true) {
+      onDisconnect(statusRef).update({ online: false, lastSeen: serverTimestamp() });
+      update(statusRef, { online: true });
+    }
+  });
+}
+
+// ----------------------------------------------------------------------------
+// ПОЛЬЗОВАТЕЛИ, СПИСОК "МОИХ" ЧАТОВ И ПОИСК
+//
+// /users/{uid}            — профили всех зарегистрированных людей (для поиска)
+// /userChats/{uid}/{chatId} = { peerUid, timestamp } — чаты, которые реально
+//                             начаты этим пользователем (список слева)
+// ----------------------------------------------------------------------------
+function chatIdFor(uid1, uid2) {
+  return [uid1, uid2].sort().join("_");
+}
+function peerUidFromChatId(chatId) {
+  const [a, b] = chatId.split("_");
+  return a === state.user.uid ? b : a;
+}
+
+const usersCache = {};              // uid -> { uid, name, tag, avatarURL, online, lastSeen, bio }
+let myChatsCache = {};              // chatId -> { peerUid, timestamp }
+let isSearchMode = false;
+const previewListenersAttached = new Set();
+
+// Кэш всех пользователей — нужен и для поиска, и чтобы обновлять
+// статус online/offline и имена уже отрисованных чатов в реальном времени.
+function subscribeAllUsersCache() {
+  onValue(ref(db, "users"), (snap) => {
+    const all = snap.val() || {};
+    Object.entries(all).forEach(([uid, u]) => { usersCache[uid] = { uid, ...u }; });
+
+    Object.keys(myChatsCache).forEach((chatId) => {
+      const peer = usersCache[peerUidFromChatId(chatId)];
+      if (peer) renderChatItem(chatId, peer);
+    });
+
+    if (state.activeChatId) {
+      const freshPeer = usersCache[peerUidFromChatId(state.activeChatId)];
+      if (freshPeer) { state.activePeer = freshPeer; updateChatHeaderStatus(); }
+    }
+
+    if (isSearchMode) performSearch($("search-input").value);
+  });
+}
+
+// Список чатов, которые пользователь реально начал (а не все зарегистрированные)
+function subscribeMyChats() {
+  onValue(ref(db, `userChats/${state.user.uid}`), (snap) => {
+    myChatsCache = snap.val() || {};
+    if (!isSearchMode) renderChatListFromCache();
+  });
+}
+
+function renderChatListFromCache() {
+  const list = $("chat-list");
+  list.innerHTML = "";
+  const chatIds = Object.keys(myChatsCache).sort(
+    (a, b) => (myChatsCache[b]?.timestamp || 0) - (myChatsCache[a]?.timestamp || 0)
+  );
+  chatIds.forEach((chatId) => {
+    const peerUid = peerUidFromChatId(chatId);
+    const peer = usersCache[peerUid] || { uid: peerUid, name: "…" };
+    state.chats[chatId] = state.chats[chatId] || {};
+    state.chats[chatId].peer = peer;
+    renderChatItem(chatId, peer);
+    attachPreviewListener(chatId);
+  });
+  toggleSidebarEmptyState(chatIds.length === 0);
+}
+
+// Подтягивает последнее сообщение чата в реальном времени, даже если этот
+// чат сейчас не открыт — иначе превью в списке слева не обновлялось бы.
+function attachPreviewListener(chatId) {
+  if (previewListenersAttached.has(chatId)) return;
+  previewListenersAttached.add(chatId);
+  const q = query(ref(db, `chats/${chatId}/messages`), orderByChild("timestamp"), limitToLast(1));
+  onValue(q, (snap) => {
+    const val = snap.val();
+    if (!val) return;
+    const last = Object.values(val)[0];
+    state.chats[chatId] = state.chats[chatId] || {};
+    state.chats[chatId].lastMessage = last;
+    const peer = usersCache[peerUidFromChatId(chatId)];
+    if (peer) renderChatItem(chatId, peer);
+  });
+}
+
+function toggleSidebarEmptyState(show) {
+  $("sidebar-empty-state").classList.toggle("hidden", !show || isSearchMode);
+}
+
+function renderChatItem(chatId, peer) {
+  let item = document.querySelector(`.chat-item[data-chat="${chatId}"]`);
+  if (!item) {
+    item = document.createElement("div");
+    item.className = "chat-item";
+    item.dataset.chat = chatId;
+    item.innerHTML = `
+      <button class="avatar avatar-md chat-item-avatar"></button>
+      <div class="chat-item-body">
+        <div class="chat-item-top">
+          <span class="chat-item-name"></span>
+          <span class="chat-item-time"></span>
+        </div>
+        <div class="chat-item-last"></div>
+      </div>`;
+    item.addEventListener("click", () => {
+      $("search-input").value = "";
+      isSearchMode = false;
+      openChat(chatId, usersCache[peer.uid] || peer);
+    });
+    $("chat-list").appendChild(item);
+  }
+  setAvatarEl(item.querySelector(".chat-item-avatar"), peer, true);
+  item.querySelector(".chat-item-name").innerHTML =
+    escapeHtml(peer.name || "Без имени") + getBadgesHTML(peer);
+
+  const last = state.chats[chatId]?.lastMessage;
+  item.querySelector(".chat-item-last").textContent = last
+    ? formatLastMessagePreview(last)
+    : (peer.tag || peer.bio || "");
+  item.querySelector(".chat-item-time").textContent = last?.timestamp
+    ? formatTime(last.timestamp) : "";
+}
+
+function formatLastMessagePreview(msg) {
+  if (msg.type === "voice") return "🎙 Голосовое сообщение";
+  if (msg.type === "video") return "🎥 Видео-сообщение";
+  return msg.text || "";
+}
+
+// ----- поиск людей по имени или MINK-ID -----
+$("search-input").addEventListener("input", (e) => performSearch(e.target.value));
+$("btn-go-search").addEventListener("click", () => $("search-input").focus());
+
+function performSearch(rawQuery) {
+  const q = rawQuery.trim().toLowerCase();
+  if (!q) {
+    isSearchMode = false;
+    renderChatListFromCache();
+    return;
+  }
+  isSearchMode = true;
+  toggleSidebarEmptyState(false);
+
+  const results = Object.values(usersCache).filter((u) => {
+    if (u.uid === state.user.uid) return false;
+    const name = (u.name || "").toLowerCase();
+    const tag = (u.tag || "").toLowerCase();
+    return name.includes(q) || tag.includes(q);
+  });
+
+  const list = $("chat-list");
+  list.innerHTML = "";
+  if (results.length === 0) {
+    list.innerHTML = `<div class="search-no-results">Никого не найдено по запросу «${escapeHtml(rawQuery)}»</div>`;
+    return;
+  }
+  results.forEach((peer) => renderSearchResultItem(peer));
+}
+
+function renderSearchResultItem(peer) {
+  const item = document.createElement("div");
+  item.className = "chat-item search-result-item";
+  item.innerHTML = `
+    <button class="avatar avatar-md search-result-avatar"></button>
+    <div class="chat-item-body">
+      <div class="chat-item-top"><span class="chat-item-name"></span></div>
+      <div class="chat-item-last"></div>
+    </div>`;
+  setAvatarEl(item.querySelector(".search-result-avatar"), peer, true);
+  item.querySelector(".chat-item-name").innerHTML =
+    escapeHtml(peer.name || "Без имени") + getBadgesHTML(peer);
+  item.querySelector(".chat-item-last").textContent = peer.tag || "";
+  item.addEventListener("click", async () => {
+    await createOrOpenChat(peer);
+    $("search-input").value = "";
+    isSearchMode = false;
+  });
+  $("chat-list").appendChild(item);
+}
+
+function escapeHtml(s) {
+  const d = document.createElement("div");
+  d.textContent = s;
+  return d.innerHTML;
+}
+
+// Создаёт запись чата у обоих участников (если её ещё нет) и открывает его
+async function createOrOpenChat(peer) {
+  const chatId = chatIdFor(state.user.uid, peer.uid);
+  const now = Date.now();
+  myChatsCache[chatId] = { peerUid: peer.uid, timestamp: now }; // сразу локально, не дожидаясь onValue
+  await update(ref(db, "userChats/" + state.user.uid), { [chatId]: { peerUid: peer.uid, timestamp: now } });
+  await update(ref(db, "userChats/" + peer.uid), { [chatId]: { peerUid: state.user.uid, timestamp: now } });
+  renderChatListFromCache();
+  openChat(chatId, peer);
+}
+
+function setAvatarEl(el, userLike, withStatus) {
+  if (!el) return;
+  el.innerHTML = "";
+  if (userLike.avatarURL) {
+    el.style.backgroundImage = `url(${userLike.avatarURL})`;
+    el.textContent = "";
+  } else {
+    el.style.backgroundImage = "";
+    el.textContent = (userLike.name || "?").trim().charAt(0).toUpperCase();
+  }
+  if (withStatus) {
+    const dot = document.createElement("span");
+    dot.className = "status-dot";
+    dot.style.background = userLike.online ? "var(--online)" : "#9aa5ad";
+    el.appendChild(dot);
+  }
+}
+
+function renderOwnAvatar() {
+  setAvatarEl($("btn-profile-avatar"), state.user, false);
+}
+
+// ----------------------------------------------------------------------------
+// ОТКРЫТИЕ ЧАТА + НЕЗАВИСИМАЯ ИСТОРИЯ СООБЩЕНИЙ (Realtime Database, per chatId)
+// ----------------------------------------------------------------------------
+function openChat(chatId, peer) {
+  document.querySelectorAll(".chat-item").forEach((el) => el.classList.toggle("active", el.dataset.chat === chatId));
+
+  state.activeChatId = chatId;
+  state.activePeer = peer;
+  state.chats[chatId] = state.chats[chatId] || {};
+  state.chats[chatId].peer = peer;
+
+  $("chat-empty").classList.add("hidden");
+  $("chat-window").classList.remove("hidden");
+  setAvatarEl($("btn-peer-avatar"), peer, true);
+  $("chat-peer-name").innerHTML = escapeHtml(peer.name || "Без имени") + getBadgesHTML(peer);
+  updateChatHeaderStatus();
+
+  // мобильный layout: показываем окно переписки вместо списка чатов
+  if (isMobileViewport()) $("app").classList.add("chat-active");
+
+  // ensure chat meta exists (список участников — используется правилами безопасности)
+  update(ref(db, `chats/${chatId}/meta/members`), { [state.user.uid]: true, [peer.uid]: true });
+
+  // отписываемся от предыдущего чата и слушаем новый — независимая история на каждый chatId
+  if (state.messagesUnsub) state.messagesUnsub();
+  const msgsRef = query(ref(db, `chats/${chatId}/messages`), orderByChild("timestamp"));
+  $("messages").innerHTML = "";
+  const unsub = onChildAdded(msgsRef, (snap) => {
+    appendMessageToDOM(snap.key, snap.val());
+    const msg = snap.val();
+    state.chats[chatId].lastMessage = msg;
+    renderChatItem(chatId, peer);
+  });
+  state.messagesUnsub = () => off(msgsRef);
+}
+
+function updateChatHeaderStatus() {
+  const fresh = state.chats[state.activeChatId]?.peer || state.activePeer;
+  $("chat-peer-status").textContent = fresh.online ? "в сети" : formatLastSeen(fresh.lastSeen);
+  $("chat-peer-name").innerHTML = escapeHtml(fresh.name || "Без имени") + getBadgesHTML(fresh);
+}
+function formatLastSeen(ts) {
+  if (!ts) return "не в сети";
+  const d = new Date(ts);
+  return "был(а) в сети " + d.toLocaleString("ru-RU", { hour: "2-digit", minute: "2-digit", day: "2-digit", month: "2-digit" });
+}
+function formatTime(ts) {
+  return new Date(ts).toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" });
+}
+
+function appendMessageToDOM(id, msg) {
+  if (document.getElementById("msg-" + id)) return;
+  const row = document.createElement("div");
+  row.id = "msg-" + id;
+  row.className = "msg-row " + (msg.senderId === state.user.uid ? "out" : "in");
+
+  let inner = "";
+  if (msg.type === "voice") {
+    inner = buildVoicePlayerHTML(msg.mediaURL, msg.duration);
+  } else if (msg.type === "video") {
+    inner = `<video class="video-circle-msg" src="${msg.mediaURL}" loop playsinline
+                onclick="this.paused ? this.play() : this.pause()" muted></video>`;
+  } else {
+    inner = `<span class="msg-text"></span>`;
+  }
+
+  const isOwn = msg.senderId === state.user.uid;
+  const sender = isOwn ? state.user : (usersCache[msg.senderId] || state.activePeer || {});
+  const badgesHTML = getBadgesHTML(sender);
+  const badgesSpan = badgesHTML ? `<span class="msg-sender-badges">${badgesHTML}</span>` : "";
+
+  row.innerHTML = `<div class="bubble">${badgesSpan}${inner}<span class="msg-time">${formatTime(msg.timestamp || Date.now())}</span></div>`;
+  if (msg.type === "text") row.querySelector(".msg-text").textContent = msg.text;
+
+  $("messages").appendChild(row);
+  if (msg.type === "voice") wireVoicePlayer(row.querySelector(".voice-player"));
+  $("messages").scrollTop = $("messages").scrollHeight;
+}
+
+// ----------------------------------------------------------------------------
+// ОТПРАВКА ТЕКСТОВЫХ СООБЩЕНИЙ
+// ----------------------------------------------------------------------------
+const msgInput = $("msg-input");
+msgInput.addEventListener("input", () => {
+  msgInput.style.height = "auto";
+  msgInput.style.height = Math.min(msgInput.scrollHeight, 120) + "px";
+  $("btn-send").classList.toggle("hidden", msgInput.value.trim() === "");
+  $("btn-mic").classList.toggle("hidden", msgInput.value.trim() !== "");
+});
+msgInput.addEventListener("keydown", (e) => {
+  if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendTextMessage(); }
+});
+$("btn-send").addEventListener("click", sendTextMessage);
+
+function sendTextMessage() {
+  const text = msgInput.value.trim();
+  if (!text || !state.activeChatId) return;
+  pushMessage({ type: "text", text });
+  msgInput.value = "";
+  msgInput.style.height = "auto";
+  $("btn-send").classList.add("hidden");
+  $("btn-mic").classList.remove("hidden");
+}
+
+function pushMessage(payload) {
+  const chatId = state.activeChatId;
+  const peer = state.activePeer;
+  const msgsRef = ref(db, `chats/${chatId}/messages`);
+  const newRef = push(msgsRef);
+  const now = Date.now();
+  set(newRef, { senderId: state.user.uid, timestamp: now, ...payload });
+  // серверная метка тоже сохраняется отдельно для сортировки при желании
+  update(newRef, { serverTimestamp: serverTimestamp() });
+
+  // поднимаем чат наверх списка у обоих участников и гарантируем,
+  // что он есть в "моих чатах" (на случай если писали в чат, открытый не через поиск)
+  update(ref(db, "userChats/" + state.user.uid), { [chatId]: { peerUid: peer.uid, timestamp: now } });
+  update(ref(db, "userChats/" + peer.uid), { [chatId]: { peerUid: state.user.uid, timestamp: now } });
+}
+
+// ============================================================================
+// ГОЛОСОВЫЕ СООБЩЕНИЯ (MediaRecorder — audio)
+// ============================================================================
+const micBtn = $("btn-mic");
+let micPressTimer = null;
+let isRecordingVoice = false;
+
+["mousedown", "touchstart"].forEach((evt) =>
+  micBtn.addEventListener(evt, (e) => { e.preventDefault(); startVoiceRecording(); })
+);
+["mouseup", "mouseleave", "touchend"].forEach((evt) =>
+  micBtn.addEventListener(evt, () => { if (isRecordingVoice) stopRecording(true); })
+);
+$("btn-record-cancel").addEventListener("click", () => stopRecording(false));
+
+async function startVoiceRecording() {
+  if (isRecordingVoice || !state.activeChatId) return;
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    isRecordingVoice = true;
+    beginRecording(stream, "voice");
+    micBtn.classList.add("recording");
+  } catch (e) {
+    alert("Нет доступа к микрофону: " + e.message);
+  }
+}
+
+function beginRecording(stream, type) {
+  state.recordStream = stream;
+  state.recordingType = type;
+  state.recordedChunks = [];
+  const mimeType = type === "voice"
+    ? (MediaRecorder.isTypeSupported("audio/webm") ? "audio/webm" : "")
+    : (MediaRecorder.isTypeSupported("video/webm;codecs=vp9,opus") ? "video/webm;codecs=vp9,opus" : "video/webm");
+
+  state.mediaRecorder = new MediaRecorder(stream, mimeType ? { mimeType } : undefined);
+  state.mediaRecorder.ondataavailable = (e) => { if (e.data.size > 0) state.recordedChunks.push(e.data); };
+  state.mediaRecorder.onstop = () => onRecordingStopped();
+  state.mediaRecorder.start();
+
+  state.recordStartTime = Date.now();
+  $("record-bar").classList.remove("hidden");
+  $("record-timer").textContent = "00:00";
+  state.recordTimerInterval = setInterval(() => {
+    const sec = Math.floor((Date.now() - state.recordStartTime) / 1000);
+    $("record-timer").textContent = `${String(Math.floor(sec / 60)).padStart(2, "0")}:${String(sec % 60).padStart(2, "0")}`;
+  }, 250);
+}
+
+function stopRecording(shouldSend) {
+  isRecordingVoice = false;
+  micBtn.classList.remove("recording");
+  clearInterval(state.recordTimerInterval);
+  $("record-bar").classList.add("hidden");
+  state.pendingSend = shouldSend;
+  if (state.mediaRecorder && state.mediaRecorder.state !== "inactive") {
+    state.mediaRecorder.stop();
+  }
+  if (state.recordStream) state.recordStream.getTracks().forEach((t) => t.stop());
+}
+
+async function onRecordingStopped() {
+  const duration = Math.round((Date.now() - state.recordStartTime) / 1000);
+  const type = state.recordingType;
+  $("video-circle-preview").classList.add("hidden");
+  $("video-circle-preview").srcObject = null;
+
+  if (!state.pendingSend || state.recordedChunks.length === 0) return;
+  const blob = new Blob(state.recordedChunks, { type: type === "voice" ? "audio/webm" : "video/webm" });
+
+  try {
+    const path = `${type}-messages/${state.activeChatId}/${Date.now()}.webm`;
+    const fileRef = sRef(storage, path);
+    await uploadBytes(fileRef, blob);
+    const url = await getDownloadURL(fileRef);
+    pushMessage({ type, mediaURL: url, duration });
+  } catch (e) {
+    alert("Не удалось загрузить медиа в Firebase Storage: " + e.message);
+  }
+}
+
+// ----- кастомный плеер голосовых сообщений -----
+function buildVoicePlayerHTML(url, duration) {
+  return `
+    <div class="voice-player" data-url="${url}">
+      <button class="voice-play-btn">▶</button>
+      <div class="voice-wave"><div class="voice-progress"></div></div>
+      <audio class="voice-audio" src="${url}" preload="none"></audio>
+      <span class="voice-duration">${formatDuration(duration)}</span>
+    </div>`;
+}
+function formatDuration(sec) {
+  sec = sec || 0;
+  return `${String(Math.floor(sec / 60)).padStart(2, "0")}:${String(sec % 60).padStart(2, "0")}`;
+}
+function wireVoicePlayer(root) {
+  if (!root) return;
+  const audio = root.querySelector(".voice-audio");
+  const playBtn = root.querySelector(".voice-play-btn");
+  const progress = root.querySelector(".voice-progress");
+  playBtn.addEventListener("click", () => {
+    document.querySelectorAll("audio.voice-audio").forEach((a) => { if (a !== audio) a.pause(); });
+    if (audio.paused) { audio.play(); playBtn.textContent = "⏸"; }
+    else { audio.pause(); playBtn.textContent = "▶"; }
+  });
+  audio.addEventListener("timeupdate", () => {
+    if (audio.duration) progress.style.width = (audio.currentTime / audio.duration * 100) + "%";
+  });
+  audio.addEventListener("ended", () => { playBtn.textContent = "▶"; progress.style.width = "0%"; });
+}
+
+// ============================================================================
+// ВИДЕО-КРУЖОЧКИ (MediaRecorder — video, круглое превью через CSS border-radius)
+// ============================================================================
+let isRecordingVideoCircle = false;
+$("btn-video-circle").addEventListener("click", async () => {
+  if (!state.activeChatId) return;
+  if (!isRecordingVideoCircle) {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { width: 480, height: 480 }, audio: true });
+      isRecordingVideoCircle = true;
+      $("btn-video-circle").classList.add("recording");
+      const preview = $("video-circle-preview");
+      preview.srcObject = stream;
+      preview.classList.remove("hidden");
+      beginRecording(stream, "video");
+      isRecordingVoice = false; // reuse timer/record-bar for video too
+      $("record-bar").classList.remove("hidden");
+    } catch (e) {
+      alert("Нет доступа к камере: " + e.message);
+    }
+  } else {
+    isRecordingVideoCircle = false;
+    $("btn-video-circle").classList.remove("recording");
+    stopRecording(true);
+  }
+});
+
+// ============================================================================
+// МОДАЛЬНЫЕ ОКНА — общие хелперы
+// ============================================================================
+function openModal(id) { $(id).classList.remove("hidden"); }
+function closeModal(id) { $(id).classList.add("hidden"); }
+document.querySelectorAll("[data-close]").forEach((btn) =>
+  btn.addEventListener("click", () => closeModal(btn.dataset.close))
+);
+
+// ============================================================================
+// НАСТРОЙКИ ПРОФИЛЯ (имя, био, аватар, тема) — Realtime Database + Storage
+// ============================================================================
+let pendingBadges = {};
+$("btn-open-settings").addEventListener("click", () => {
+  $("settings-name").value = state.user.name || "";
+  $("settings-bio").value = state.user.bio || "";
+  $("settings-tag").textContent = state.user.tag ? "Ваш ID: " + state.user.tag : "";
+  setAvatarEl($("settings-avatar-preview"), state.user, false);
+  document.querySelectorAll(".theme-swatch").forEach((s) =>
+    s.classList.toggle("selected", s.dataset.theme === (state.user.theme || "light"))
+  );
+
+  // Панель управления бейджиками — строго только для владельца (MINK-493446)
+  const isOwner = state.user.tag === OWNER_TAG;
+  $("badge-admin-section").classList.toggle("hidden", !isOwner);
+  if (isOwner) {
+    pendingBadges = { ...(state.user.badges || {}) };
+    document.querySelectorAll("#badge-admin-section .toggle-switch").forEach((sw) => {
+      sw.classList.toggle("on", !!pendingBadges[sw.dataset.badge]);
+    });
+  }
+
+  openModal("settings-modal");
+});
+
+document.querySelectorAll("#badge-admin-section .toggle-switch").forEach((sw) => {
+  sw.addEventListener("click", () => {
+    const key = sw.dataset.badge;
+    pendingBadges[key] = !pendingBadges[key];
+    sw.classList.toggle("on", pendingBadges[key]);
+  });
+});
+$("btn-profile-avatar").addEventListener("click", () => $("btn-open-settings").click());
+
+let pendingAvatarFile = null;
+$("settings-avatar-input").addEventListener("change", (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  pendingAvatarFile = file;
+  const reader = new FileReader();
+  reader.onload = () => {
+    $("settings-avatar-preview").style.backgroundImage = `url(${reader.result})`;
+    $("settings-avatar-preview").textContent = "";
+  };
+  reader.readAsDataURL(file);
+});
+
+document.querySelectorAll(".theme-swatch").forEach((btn) => {
+  btn.addEventListener("click", () => {
+    document.querySelectorAll(".theme-swatch").forEach((s) => s.classList.remove("selected"));
+    btn.classList.add("selected");
+    applyTheme(btn.dataset.theme);
+  });
+});
+
+function applyTheme(theme) {
+  document.documentElement.setAttribute("data-theme", theme);
+  localStorage.setItem("teleclone-theme", theme);
+}
+// применяем локально сохранённую тему сразу при загрузке (до входа в аккаунт)
+applyTheme(localStorage.getItem("teleclone-theme") || "light");
+
+$("btn-save-settings").addEventListener("click", async () => {
+  const name = $("settings-name").value.trim() || "Без имени";
+  const bio = $("settings-bio").value.trim();
+  const selectedTheme = document.querySelector(".theme-swatch.selected")?.dataset.theme || "light";
+
+  let avatarURL = state.user.avatarURL || "";
+  if (pendingAvatarFile) {
+    const path = `avatars/${state.user.uid}/${Date.now()}-${pendingAvatarFile.name}`;
+    const fileRef = sRef(storage, path);
+    await uploadBytes(fileRef, pendingAvatarFile);
+    avatarURL = await getDownloadURL(fileRef);
+    pendingAvatarFile = null;
+  }
+
+  const updates = { name, bio, avatarURL, theme: selectedTheme };
+  if (state.user.tag === OWNER_TAG) {
+    updates.badges = pendingBadges;
+  }
+
+  await update(ref(db, "users/" + state.user.uid), updates);
+  state.user = { ...state.user, ...updates };
+  applyTheme(selectedTheme);
+  renderOwnAvatar();
+  // мгновенно обновляем локальный кэш — собеседники увидят бейджи в реальном
+  // времени через уже существующий подписчик subscribeAllUsersCache(), а мои
+  // собственные новые сообщения сразу подхватят бейджи из state.user
+  usersCache[state.user.uid] = { ...usersCache[state.user.uid], ...updates };
+  closeModal("settings-modal");
+});
+
+// ============================================================================
+// WebRTC P2P АУДИО/ВИДЕОЗВОНКИ. Сигнализация (offer/answer/ICE) — через RTDB
+// Схема: /calls/{chatId} = { callerId, calleeId, type, status,
+//                            offer:{sdp,type}, answer:{sdp,type},
+//                            callerCandidates:{...}, calleeCandidates:{...} }
+// ============================================================================
+const seenCallIds = new Set();
+
+function subscribeGlobalIncomingCalls() {
+  onValue(ref(db, "calls"), (snap) => {
+    const all = snap.val() || {};
+    Object.entries(all).forEach(([callId, call]) => {
+      if (
+        call.calleeId === state.user.uid &&
+        call.status === "ringing" &&
+        !seenCallIds.has(callId) &&
+        !state.currentCallId
+      ) {
+        seenCallIds.add(callId);
+        showIncomingCall(callId, call);
+      }
+      // если звонок завершили/отклонили с другой стороны — закрываем модалку
+      if (callId === state.currentCallId && (call.status === "declined" || call.status === "ended")) {
+        endCall(false);
+      }
+    });
+  });
+}
+
+$("btn-call-audio").addEventListener("click", () => startCall("audio"));
+$("btn-call-video").addEventListener("click", () => startCall("video"));
+
+async function startCall(type) {
+  if (!state.activeChatId || state.currentCallId) return;
+  const chatId = state.activeChatId;
+  const peer = state.activePeer;
+
+  try {
+    state.localStream = await navigator.mediaDevices.getUserMedia({
+      audio: true, video: type === "video"
+    });
+  } catch (e) { alert("Нет доступа к камере/микрофону: " + e.message); return; }
+
+  state.currentCallId = chatId;
+  state.callType = type;
+  state.isCaller = true;
+  seenCallIds.add(chatId);
+
+  const pc = createPeerConnection(chatId, "caller");
+  state.localStream.getTracks().forEach((t) => pc.addTrack(t, state.localStream));
+
+  showCallModal({ peerName: peer.name, type, isIncoming: false, isCaller: true });
+
+  const offer = await pc.createOffer();
+  await pc.setLocalDescription(offer);
+
+  await set(ref(db, `calls/${chatId}`), {
+    callerId: state.user.uid, calleeId: peer.uid, type, status: "ringing",
+    offer: { sdp: offer.sdp, type: offer.type }
+  });
+
+  // ждём ответ
+  onValue(ref(db, `calls/${chatId}/answer`), async (snap) => {
+    const answer = snap.val();
+    if (answer && pc.signalingState !== "stable" && !pc.currentRemoteDescription) {
+      await pc.setRemoteDescription(new RTCSessionDescription(answer));
+      $("call-status").textContent = "Соединено";
+    }
+  });
+  listenRemoteCandidates(chatId, "calleeCandidates", pc);
+}
+
+function showIncomingCall(callId, call) {
+  get(ref(db, "users/" + call.callerId)).then((snap) => {
+    const caller = snap.val() || { name: "Неизвестный" };
+    state.currentCallId = callId;
+    state.callType = call.type;
+    state.isCaller = false;
+    showCallModal({ peerName: caller.name, type: call.type, isIncoming: true, isCaller: false, avatar: caller });
+  });
+}
+
+$("btn-call-accept").addEventListener("click", async () => {
+  const callId = state.currentCallId;
+  const callSnap = await get(ref(db, `calls/${callId}`));
+  const call = callSnap.val();
+  if (!call) return;
+
+  try {
+    state.localStream = await navigator.mediaDevices.getUserMedia({
+      audio: true, video: call.type === "video"
+    });
+  } catch (e) { alert("Нет доступа к камере/микрофону: " + e.message); endCall(true); return; }
+
+  const pc = createPeerConnection(callId, "callee");
+  state.localStream.getTracks().forEach((t) => pc.addTrack(t, state.localStream));
+
+  await pc.setRemoteDescription(new RTCSessionDescription(call.offer));
+  const answer = await pc.createAnswer();
+  await pc.setLocalDescription(answer);
+
+  await update(ref(db, `calls/${callId}`), {
+    answer: { sdp: answer.sdp, type: answer.type }, status: "accepted"
+  });
+
+  listenRemoteCandidates(callId, "callerCandidates", pc);
+  $("call-status").textContent = "Соединено";
+  $("btn-call-accept").classList.add("hidden");
+  attachLocalPreview();
+});
+
+$("btn-call-decline").addEventListener("click", () => {
+  if (state.currentCallId) update(ref(db, `calls/${state.currentCallId}`), { status: "declined" });
+  endCall(true);
+});
+
+function createPeerConnection(callId, role) {
+  const pc = new RTCPeerConnection(ICE_SERVERS);
+  state.pc = pc;
+
+  pc.onicecandidate = (e) => {
+    if (!e.candidate) return;
+    const path = role === "caller" ? "callerCandidates" : "calleeCandidates";
+    push(ref(db, `calls/${callId}/${path}`), e.candidate.toJSON());
+  };
+
+  pc.ontrack = (e) => {
+    const remoteVideo = $("remote-video");
+    remoteVideo.srcObject = e.streams[0];
+    if (state.callType === "video") remoteVideo.classList.remove("hidden");
+    $("call-avatar-big").classList.toggle("hidden", state.callType === "video");
+  };
+
+  pc.onconnectionstatechange = () => {
+    if (["disconnected", "failed", "closed"].includes(pc.connectionState)) endCall(true);
+  };
+
+  return pc;
+}
+
+function listenRemoteCandidates(callId, path, pc) {
+  const candRef = ref(db, `calls/${callId}/${path}`);
+  const unsub = onChildAdded(candRef, (snap) => {
+    const cand = snap.val();
+    if (cand && pc.remoteDescription) pc.addIceCandidate(new RTCIceCandidate(cand)).catch(() => {});
+  });
+  state.candidatesUnsubs.push(() => off(candRef));
+}
+
+function attachLocalPreview() {
+  const localVideo = $("local-video");
+  if (state.callType === "video" && state.localStream) {
+    localVideo.srcObject = state.localStream;
+    localVideo.classList.remove("hidden");
+  }
+}
+
+function showCallModal({ peerName, type, isIncoming, isCaller, avatar }) {
+  $("call-peer-name").textContent = peerName;
+  $("call-status").textContent = isIncoming ? `Входящий ${type === "video" ? "видео" : ""}звонок` : "Вызов...";
+  setAvatarEl($("call-avatar-big"), avatar || { name: peerName }, false);
+  $("call-avatar-big").classList.remove("hidden");
+  $("remote-video").classList.add("hidden");
+  $("local-video").classList.add("hidden");
+  $("btn-call-accept").classList.toggle("hidden", !isIncoming);
+  $("btn-call-mute").classList.toggle("hidden", isIncoming);
+  openModal("call-modal");
+  if (!isIncoming) attachLocalPreview();
+}
+
+$("btn-call-mute").addEventListener("click", () => {
+  if (!state.localStream) return;
+  const track = state.localStream.getAudioTracks()[0];
+  if (!track) return;
+  track.enabled = !track.enabled;
+  $("btn-call-mute").classList.toggle("muted", !track.enabled);
+});
+
+function endCall(cleanupDb) {
+  if (state.pc) { state.pc.close(); state.pc = null; }
+  if (state.localStream) { state.localStream.getTracks().forEach((t) => t.stop()); state.localStream = null; }
+  state.candidatesUnsubs.forEach((fn) => fn());
+  state.candidatesUnsubs = [];
+
+  if (cleanupDb && state.currentCallId) {
+    remove(ref(db, `calls/${state.currentCallId}`)).catch(() => {});
+  }
+  if (state.currentCallId) seenCallIds.delete(state.currentCallId);
+  state.currentCallId = null;
+  state.callType = null;
+  $("remote-video").srcObject = null;
+  $("local-video").srcObject = null;
+  closeModal("call-modal");
+}
+
+</script>
+</body>
+</html>
