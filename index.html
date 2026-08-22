@@ -5,10 +5,19 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="theme-color" content="#17212b">
 <title>MINK — веб-мессенджер</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Baloo+2:wght@600;700;800&display=swap" rel="stylesheet">
 <style>
 :root{
   --accent-1:#3390EC;
   --accent-2:#007AFF;
+  --font-fun:'Fredoka','Baloo 2',-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  --toon-yellow:#FFD166;
+  --toon-pink:#FF6FA5;
+  --toon-purple:#8C6FFF;
+  --toon-green:#3DDC97;
+  --toon-orange:#FF8A5B;
   --bg-app:#ffffff;
   --bg-sidebar:#ffffff;
   --bg-chat:#e6ebee;
@@ -56,7 +65,7 @@ html,body{
   margin:0;
 }
 body{
-  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  font-family:var(--font-fun);
   background:var(--bg-app);
   color:var(--text-main);
   overflow:hidden;
@@ -64,6 +73,7 @@ body{
   padding-left:env(safe-area-inset-left);
   padding-right:env(safe-area-inset-right);
 }
+h1,h2,h3,.auth-logo,.chat-peer-name,.chat-item-name,.call-peer-name,.onboard-title{font-family:'Baloo 2',var(--font-fun);}
 .hidden{display:none !important;}
 button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit;}
 input,textarea{font-family:inherit;color:inherit;}
@@ -137,6 +147,32 @@ input,textarea{font-family:inherit;color:inherit;}
 .search-result-item .chat-item-last{opacity:.7;}
 .search-no-results{padding:20px 16px;text-align:center;color:var(--text-muted);font-size:13.5px;}
 .settings-tag{font-size:12.5px;color:var(--text-muted);background:rgba(127,127,127,.12);padding:4px 10px;border-radius:10px;}
+.username-input-wrap{position:relative;display:flex;align-items:center;}
+.username-at{position:absolute;left:12px;font-weight:700;color:var(--accent-1);font-size:14px;pointer-events:none;}
+#settings-username{
+  width:100%;padding:10px 12px 10px 26px;border-radius:10px;border:1px solid var(--border);background:transparent;
+  color:inherit;font-size:14px;outline:none;
+}
+#settings-username:focus{border-color:var(--accent-1);}
+.username-status{font-size:12px;margin-top:5px;min-height:15px;font-weight:600;}
+.username-status.ok{color:#2bc98a;}
+.username-status.taken{color:#e05353;}
+.username-status.invalid{color:#e05353;}
+.username-status.checking{color:var(--text-muted);}
+.peer-username-tag{font-size:12.5px;color:var(--accent-1);font-weight:600;}
+
+/* --- тост-уведомления (успех/ошибка сохранения и т.п.) --- */
+.toast{
+  position:fixed;bottom:26px;left:50%;
+  background:#1c2733;color:#fff;padding:12px 22px;border-radius:14px;font-size:14px;font-weight:600;
+  box-shadow:0 12px 32px rgba(0,0,0,.28);z-index:200;max-width:86vw;text-align:center;
+  opacity:0;transform:translate(-50%,16px);transition:transform .3s var(--spring), opacity .3s ease;
+  pointer-events:none;
+}
+.toast.show{opacity:1;transform:translate(-50%,0);}
+.toast-success{background:linear-gradient(135deg,#2bc98a,#3ddc97);}
+.toast-error{background:linear-gradient(135deg,#e05353,#ff8080);}
+.btn-primary[disabled]{opacity:.65;pointer-events:none;}
 .chat-item{
   display:flex;align-items:center;gap:10px;padding:9px 12px;cursor:pointer;border-bottom:1px solid transparent;
 }
@@ -155,10 +191,14 @@ input,textarea{font-family:inherit;color:inherit;}
 /* avatars */
 .avatar{
   width:44px;height:44px;border-radius:50%;flex-shrink:0;position:relative;
-  background:linear-gradient(135deg,#7f9cf5,#a78bfa);
+  background:linear-gradient(135deg,var(--toon-purple),var(--toon-pink));
   background-size:cover;background-position:center;
-  display:flex;align-items:center;justify-content:center;color:#fff;font-weight:600;font-size:16px;
+  display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:16px;
+  font-family:'Baloo 2',var(--font-fun);
+  box-shadow:0 3px 0 rgba(0,0,0,.08), 0 4px 10px rgba(140,111,255,.25);
+  transition:transform .25s var(--spring);
 }
+button.avatar:hover, .avatar[role="button"]:hover{transform:scale(1.06) rotate(-2deg);}
 .avatar-sm{width:34px;height:34px;font-size:13px;}
 .avatar-md{width:42px;height:42px;font-size:15px;}
 .avatar-lg{width:88px;height:88px;font-size:30px;margin:0 auto;}
@@ -182,18 +222,22 @@ input,textarea{font-family:inherit;color:inherit;}
 .chat-header-info{display:flex;align-items:center;gap:10px;}
 .chat-peer-name{font-weight:600;font-size:15px;}
 .chat-peer-status{font-size:12.5px;color:var(--text-muted);}
-.chat-header-actions{display:flex;gap:4px;}
+.chat-header-actions{display:flex;gap:6px;}
+#btn-call-audio{background:linear-gradient(135deg,var(--toon-green),#2bc98a);color:#fff;}
+#btn-call-video{background:linear-gradient(135deg,var(--toon-purple),var(--toon-pink));color:#fff;}
+#btn-call-audio,#btn-call-video{width:36px;height:36px;border-radius:50%;box-shadow:0 2px 0 rgba(0,0,0,.08);}
 
 .messages{flex:1;overflow-y:auto;padding:16px 8%;display:flex;flex-direction:column;gap:4px;}
 .msg-row{display:flex;max-width:60%;}
 .msg-row.out{align-self:flex-end;justify-content:flex-end;}
 .msg-row.in{align-self:flex-start;}
 .bubble{
-  padding:7px 10px;border-radius:14px;font-size:14.5px;line-height:1.35;position:relative;
+  padding:8px 12px;border-radius:20px;font-size:14.5px;line-height:1.4;position:relative;
   word-wrap:break-word;
+  box-shadow:0 2px 0 rgba(0,0,0,.04), 0 3px 8px rgba(0,0,0,.06);
 }
-.msg-row.out .bubble{background:var(--bubble-out);color:var(--bubble-out-text);border-bottom-right-radius:4px;}
-.msg-row.in .bubble{background:var(--bubble-in);color:var(--bubble-in-text);border-bottom-left-radius:4px;box-shadow:0 1px 1px rgba(0,0,0,.05);}
+.msg-row.out .bubble{background:linear-gradient(135deg,var(--bubble-out),var(--bubble-out));background:var(--bubble-out);color:var(--bubble-out-text);border-bottom-right-radius:6px;}
+.msg-row.in .bubble{background:var(--bubble-in);color:var(--bubble-in-text);border-bottom-left-radius:6px;box-shadow:0 2px 0 rgba(0,0,0,.03), 0 2px 6px rgba(0,0,0,.06);}
 .msg-time{font-size:10.5px;color:var(--text-muted);margin-left:8px;float:right;margin-top:4px;}
 .msg-row.out .msg-time{color:#5a7a5a;}
 
@@ -237,14 +281,47 @@ input,textarea{font-family:inherit;color:inherit;}
   flex:1;resize:none;border:none;outline:none;background:rgba(127,127,127,.1);
   border-radius:18px;padding:9px 14px;font-size:14.5px;max-height:120px;color:inherit;
 }
-.mic-btn.recording{background:#e05353;color:#fff;}
+.mic-btn.recording{background:#e05353;color:#fff;box-shadow:0 0 0 6px rgba(224,83,83,.18);animation:micPulse 1.1s infinite;}
+@keyframes micPulse{0%,100%{box-shadow:0 0 0 4px rgba(224,83,83,.18);}50%{box-shadow:0 0 0 10px rgba(224,83,83,.08);}}
+
+/* --- панель composer: цветные "мультяшные" кнопки --- */
+.composer .icon-btn{
+  width:38px;height:38px;border-radius:50%;font-size:17px;transition:transform .18s var(--spring), background .2s ease;
+}
+#btn-attach{background:linear-gradient(135deg,var(--toon-orange),#ffb37a);color:#fff;box-shadow:0 3px 0 rgba(0,0,0,.06);}
+#btn-video-circle{background:linear-gradient(135deg,var(--toon-purple),#b39dff);color:#fff;box-shadow:0 3px 0 rgba(0,0,0,.06);}
+#btn-mic{background:linear-gradient(135deg,var(--accent-1),var(--accent-2));color:#fff;box-shadow:0 3px 0 rgba(0,0,0,.06);}
+.send-btn{background:linear-gradient(135deg,var(--toon-green),#2bc98a) !important;color:#fff;box-shadow:0 3px 0 rgba(0,0,0,.08);}
+.composer .icon-btn:active{transform:scale(.9) rotate(-4deg);}
+#btn-video-circle.recording{background:linear-gradient(135deg,#e05353,#ff8080);animation:micPulse 1.1s infinite;}
+
+/* --- фото-сообщения --- */
+.img-msg-wrap{position:relative;}
+.img-msg{max-width:250px;max-height:320px;border-radius:16px;display:block;cursor:zoom-in;object-fit:cover;box-shadow:0 3px 10px rgba(0,0,0,.12);}
+.img-msg.uploading{opacity:.55;filter:blur(1px);}
+.img-upload-spinner{
+  position:absolute;top:50%;left:50%;width:26px;height:26px;margin:-13px 0 0 -13px;
+  border-radius:50%;border:3px solid rgba(255,255,255,.5);border-top-color:#fff;
+  animation:spin .8s linear infinite;
+}
+@keyframes spin{to{transform:rotate(360deg);}}
+.img-lightbox{
+  position:fixed;inset:0;background:rgba(10,12,18,.92);z-index:80;
+  display:flex;align-items:center;justify-content:center;padding:24px;
+  animation:overlayFade .2s ease;
+}
+.img-lightbox img{max-width:92vw;max-height:88vh;border-radius:14px;box-shadow:0 20px 60px rgba(0,0,0,.5);}
+.img-lightbox-close{
+  position:absolute;top:18px;right:18px;width:40px;height:40px;border-radius:50%;
+  background:rgba(255,255,255,.15);color:#fff;font-size:20px;display:flex;align-items:center;justify-content:center;
+}
 
 /* ---------- MODALS ---------- */
 .modal-overlay{
   position:fixed;inset:0;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;z-index:50;
 }
 .modal{
-  width:380px;max-height:88vh;overflow-y:auto;background:var(--bg-app);color:var(--text-main);border-radius:14px;
+  width:380px;max-height:88vh;overflow-y:auto;background:var(--bg-app);color:var(--text-main);border-radius:22px;
 }
 .modal-header{
   display:flex;justify-content:space-between;align-items:center;padding:16px 18px;border-bottom:1px solid var(--border);
@@ -285,10 +362,13 @@ input,textarea{font-family:inherit;color:inherit;}
 .call-btn{
   width:56px;height:56px;border-radius:50%;font-size:20px;display:flex;align-items:center;justify-content:center;
 }
-.call-btn-accept{background:#4fc44f;color:#fff;}
-.call-btn-decline{background:#e05353;color:#fff;}
+.call-btn-accept{background:linear-gradient(135deg,#4fc44f,#7be07b);color:#fff;box-shadow:0 4px 0 rgba(0,0,0,.15);}
+.call-btn-decline{background:linear-gradient(135deg,#e05353,#ff8080);color:#fff;box-shadow:0 4px 0 rgba(0,0,0,.15);}
 .call-btn-mute{background:rgba(255,255,255,.15);color:#fff;}
 .call-btn-mute.muted{background:#e05353;}
+.call-btn:active{transform:translateY(2px);}
+@keyframes wiggle{0%,100%{transform:rotate(0deg) scale(1);}25%{transform:rotate(-4deg) scale(1.03);}75%{transform:rotate(4deg) scale(1.03);}}
+.call-avatar.ringing{animation:wiggle .7s ease-in-out infinite;}
 
 /* scrollbars */
 .chat-list::-webkit-scrollbar,.messages::-webkit-scrollbar,.modal::-webkit-scrollbar{width:6px;}
@@ -467,12 +547,14 @@ input,textarea{font-family:inherit;color:inherit;}
   box-shadow:0 24px 70px rgba(0,0,0,.5);
 }
 .auth-logo{
-  width:60px;height:60px;margin:0 auto 12px;border-radius:18px;
-  background:linear-gradient(135deg,var(--accent-1),var(--accent-2));
-  display:flex;align-items:center;justify-content:center;font-size:28px;
-  box-shadow:0 8px 24px rgba(51,144,236,.4);
+  width:64px;height:64px;margin:0 auto 12px;border-radius:22px;
+  background:linear-gradient(135deg,var(--toon-purple),var(--toon-pink));
+  display:flex;align-items:center;justify-content:center;font-size:30px;
+  box-shadow:0 10px 26px rgba(140,111,255,.45);
+  animation:logoFloat 3s ease-in-out infinite;
 }
-.auth-card h1{color:#fff;letter-spacing:.5px;}
+@keyframes logoFloat{0%,100%{transform:translateY(0) rotate(0deg);}50%{transform:translateY(-6px) rotate(-6deg);}}
+.auth-card h1{color:#fff;letter-spacing:.5px;font-size:26px;font-family:'Baloo 2',var(--font-fun);}
 .auth-sub{color:#8A93A3;}
 .auth-field{position:relative;margin-bottom:10px;}
 .auth-field .field-icon{
@@ -510,9 +592,10 @@ input,textarea{font-family:inherit;color:inherit;}
 /* ---------- ПУСТОЙ СПИСОК ЧАТОВ: премиум-иллюстрация ---------- */
 .sidebar-empty-illustration{
   width:96px;height:96px;border-radius:28px;margin-bottom:16px;
-  background:linear-gradient(135deg,var(--accent-1),var(--accent-2));
+  background:linear-gradient(135deg,var(--toon-purple),var(--toon-pink));
   display:flex;align-items:center;justify-content:center;font-size:40px;color:#fff;
-  box-shadow:0 14px 34px rgba(51,144,236,.35);
+  box-shadow:0 14px 34px rgba(140,111,255,.35);
+  animation:logoFloat 3s ease-in-out infinite;
 }
 .sidebar-empty-state h3{margin:0 0 6px;font-size:16px;color:var(--text-main);}
 .sidebar-empty-state p{max-width:230px;}
@@ -550,7 +633,7 @@ input,textarea{font-family:inherit;color:inherit;}
       </div>
       <div class="onboard-step">
         <div class="onboard-step-num">2</div>
-        <div class="onboard-step-text">Введите уникальный <b>MINK ID</b> друга (например: <b>MINK-784920</b>) или его имя.</div>
+        <div class="onboard-step-text">Введите <b>MINK ID</b> друга (например: <b>MINK-784920</b>), его <b>@юзернейм</b> или имя.</div>
       </div>
       <div class="onboard-step">
         <div class="onboard-step-num">3</div>
@@ -567,7 +650,7 @@ input,textarea{font-family:inherit;color:inherit;}
     <div class="sidebar-header">
       <button id="btn-profile-avatar" class="avatar avatar-sm" title="Профиль"></button>
       <div class="search-wrap">
-        <input id="search-input" type="text" placeholder="Поиск по имени или MINK-ID">
+        <input id="search-input" type="text" placeholder="Поиск по имени, @юзернейму или MINK-ID">
       </div>
       <button id="btn-open-settings" class="icon-btn" title="Настройки">⚙</button>
     </div>
@@ -621,7 +704,8 @@ input,textarea{font-family:inherit;color:inherit;}
       <video id="video-circle-preview" class="video-circle-preview hidden" autoplay muted playsinline></video>
 
       <footer class="composer">
-        <button id="btn-attach" class="icon-btn" title="Прикрепить">📎</button>
+        <button id="btn-attach" class="icon-btn" title="Отправить фото">📎</button>
+        <input id="photo-input" type="file" accept="image/*" class="hidden-input">
         <textarea id="msg-input" placeholder="Написать сообщение..." rows="1"></textarea>
         <button id="btn-video-circle" class="icon-btn" title="Видео-кружочек (клик — начать/остановить)">🎥</button>
         <button id="btn-mic" class="icon-btn mic-btn" title="Зажмите для голосового">🎙</button>
@@ -641,14 +725,23 @@ input,textarea{font-family:inherit;color:inherit;}
     <div class="modal-body">
       <div class="settings-avatar-row">
         <button id="settings-avatar-preview" class="avatar avatar-lg"></button>
-        <label class="btn-secondary file-label">
-          Изменить фото
-          <input id="settings-avatar-input" type="file" accept="image/*" class="hidden-input">
-        </label>
+        <div style="display:flex; gap:8px; justify-content:center;">
+          <label class="btn-secondary file-label">
+            Изменить фото
+            <input id="settings-avatar-input" type="file" accept="image/*" class="hidden-input">
+          </label>
+          <button id="btn-remove-avatar" class="btn-secondary" style="padding:11px 22px;">Удалить</button>
+        </div>
         <div id="settings-tag" class="settings-tag" title="Поделитесь этим ID, чтобы вас нашли"></div>
       </div>
       <label class="field-label">Имя</label>
       <input id="settings-name" type="text" placeholder="Ваше имя">
+      <label class="field-label">Юзернейм</label>
+      <div class="username-input-wrap">
+        <span class="username-at">@</span>
+        <input id="settings-username" type="text" placeholder="username" maxlength="32" autocomplete="off">
+      </div>
+      <div id="username-status" class="username-status"></div>
       <label class="field-label">Био</label>
       <textarea id="settings-bio" rows="3" placeholder="О себе"></textarea>
       <label class="field-label">Тема оформления</label>
@@ -700,9 +793,7 @@ input,textarea{font-family:inherit;color:inherit;}
   </div>
 </div>
 
-<audio id="ringtone" loop>
-  <!-- звук звонка можно подключить своим файлом -->
-</audio>
+<!-- звуки звонка и уведомлений генерируются на лету через Web Audio API (см. SoundFX в скрипте) -->
 
 <script type="module">
 // ============================================================================
@@ -775,6 +866,119 @@ const ICE_SERVERS = {
 };
 
 const $ = (id) => document.getElementById(id);
+
+// ============================================================================
+// SoundFX — звуки вызова и уведомлений, синтезируются на лету через Web Audio
+// API (файлы не нужны — работает офлайн и не увеличивает вес страницы).
+// ============================================================================
+const SoundFX = (() => {
+  let ctx = null;
+  function getCtx() {
+    if (!ctx) ctx = new (window.AudioContext || window.webkitAudioContext)();
+    if (ctx.state === "suspended") ctx.resume().catch(() => {});
+    return ctx;
+  }
+  function beep({ freq = 440, duration = 0.15, type = "sine", gain = 0.16, when = 0 } = {}) {
+    try {
+      const c = getCtx();
+      const osc = c.createOscillator();
+      const g = c.createGain();
+      osc.type = type;
+      osc.frequency.value = freq;
+      g.gain.value = 0;
+      osc.connect(g);
+      g.connect(c.destination);
+      const t0 = c.currentTime + when;
+      g.gain.setValueAtTime(0, t0);
+      g.gain.linearRampToValueAtTime(gain, t0 + 0.02);
+      g.gain.exponentialRampToValueAtTime(0.0001, t0 + duration);
+      osc.start(t0);
+      osc.stop(t0 + duration + 0.03);
+    } catch (e) { /* аудио может быть заблокировано до первого клика — это ок */ }
+  }
+  function notification() {
+    beep({ freq: 880, duration: 0.09, gain: 0.18, type: "sine" });
+    beep({ freq: 1175, duration: 0.13, gain: 0.15, type: "sine", when: 0.09 });
+  }
+  function messageSent() {
+    beep({ freq: 660, duration: 0.06, gain: 0.09, type: "sine" });
+  }
+  let ringTimer = null;
+  function startRing(pattern = "incoming") {
+    stopRing();
+    const playOnce = () => {
+      if (pattern === "incoming") {
+        beep({ freq: 740, duration: 0.32, gain: 0.2, type: "triangle" });
+        beep({ freq: 880, duration: 0.32, gain: 0.2, type: "triangle", when: 0.36 });
+      } else {
+        beep({ freq: 480, duration: 0.55, gain: 0.12, type: "sine" });
+      }
+    };
+    playOnce();
+    ringTimer = setInterval(playOnce, pattern === "incoming" ? 1500 : 2600);
+  }
+  function stopRing() {
+    if (ringTimer) { clearInterval(ringTimer); ringTimer = null; }
+  }
+  return { notification, messageSent, startRing, stopRing, unlock: getCtx };
+})();
+// Браузеры блокируют звук до первого взаимодействия пользователя со страницей —
+// «размораживаем» аудио-контекст по первому клику/тапу.
+document.addEventListener("click", () => SoundFX.unlock(), { once: true });
+document.addEventListener("touchstart", () => SoundFX.unlock(), { once: true, passive: true });
+
+// ============================================================================
+// БРАУЗЕРНЫЕ УВЕДОМЛЕНИЯ + счётчик непрочитанных в заголовке вкладки.
+// Работает, пока страница MINK открыта (вкладка/окно) — на телефоне и на
+// компьютере одинаково: если вкладка свёрнута/не в фокусе, при новом
+// сообщении звучит сигнал и показывается системное уведомление.
+// ============================================================================
+let unreadTitleCount = 0;
+const baseDocTitle = document.title;
+function bumpUnreadTitle() {
+  unreadTitleCount++;
+  document.title = `(${unreadTitleCount}) ${baseDocTitle}`;
+}
+window.addEventListener("focus", () => { unreadTitleCount = 0; document.title = baseDocTitle; });
+
+function requestNotificationPermission() {
+  if ("Notification" in window && Notification.permission === "default") {
+    Notification.requestPermission().catch(() => {});
+  }
+}
+
+function notificationBodyFor(msg) {
+  if (msg.type === "voice") return "🎙 Голосовое сообщение";
+  if (msg.type === "video") return "🎥 Видео-кружочек";
+  if (msg.type === "image") return "📷 Фото";
+  return msg.text || "Новое сообщение";
+}
+
+function showIncomingMessageNotification(chatId, peer, msg) {
+  SoundFX.notification();
+
+  // системное уведомление и бейдж в заголовке — только если человек сейчас
+  // не смотрит именно в этот открытый и активный чат
+  const isViewingThisChat = state.activeChatId === chatId && document.hasFocus();
+  if (isViewingThisChat) return;
+
+  bumpUnreadTitle();
+
+  if (!("Notification" in window) || Notification.permission !== "granted") return;
+  try {
+    const n = new Notification(peer?.name || "MINK", {
+      body: notificationBodyFor(msg),
+      icon: peer?.avatarURL || undefined,
+      tag: "mink-" + chatId
+    });
+    n.onclick = () => {
+      window.focus();
+      const freshPeer = usersCache[peerUidFromChatId(chatId)] || peer;
+      openChat(chatId, freshPeer);
+      n.close();
+    };
+  } catch (e) { /* некоторые окружения (например iOS Safari вне PWA) не поддерживают Notification */ }
+}
 
 // MINK ID владельца/создателя приложения — только этому тегу доступна панель бейджиков
 const OWNER_TAG = "MINK-493446";
@@ -934,6 +1138,7 @@ onAuthStateChanged(auth, async (fbUser) => {
     try { subscribeAllUsersCache(); } catch (e) { console.error("User cache error:", e); }
     try { subscribeMyChats(); } catch (e) { console.error("Chat list error:", e); }
     try { subscribeGlobalIncomingCalls(); } catch (e) { console.error("Calls listener error:", e); }
+    requestNotificationPermission();
   } else {
     state.user = null;
     $("auth-screen").classList.remove("hidden");
@@ -1027,6 +1232,7 @@ function renderChatListFromCache() {
 
 // Подтягивает последнее сообщение чата в реальном времени, даже если этот
 // чат сейчас не открыт — иначе превью в списке слева не обновлялось бы.
+const previewInitialized = new Set(); // чтобы не слать уведомление о старых сообщениях при первой загрузке
 function attachPreviewListener(chatId) {
   if (previewListenersAttached.has(chatId)) return;
   previewListenersAttached.add(chatId);
@@ -1035,10 +1241,19 @@ function attachPreviewListener(chatId) {
     const val = snap.val();
     if (!val) return;
     const last = Object.values(val)[0];
+    const isFirstLoad = !previewInitialized.has(chatId);
+    const prevMsg = state.chats[chatId]?.lastMessage;
+    previewInitialized.add(chatId);
+
     state.chats[chatId] = state.chats[chatId] || {};
     state.chats[chatId].lastMessage = last;
     const peer = usersCache[peerUidFromChatId(chatId)];
     if (peer) renderChatItem(chatId, peer);
+
+    const isNew = !isFirstLoad && last && prevMsg?.timestamp !== last.timestamp;
+    if (isNew && last.senderId !== state.user.uid) {
+      showIncomingMessageNotification(chatId, peer, last);
+    }
   });
 }
 
@@ -1075,7 +1290,7 @@ function renderChatItem(chatId, peer) {
   const last = state.chats[chatId]?.lastMessage;
   item.querySelector(".chat-item-last").textContent = last
     ? formatLastMessagePreview(last)
-    : (peer.tag || peer.bio || "");
+    : (peer.username ? "@" + peer.username : (peer.tag || peer.bio || ""));
   item.querySelector(".chat-item-time").textContent = last?.timestamp
     ? formatTime(last.timestamp) : "";
 }
@@ -1083,6 +1298,7 @@ function renderChatItem(chatId, peer) {
 function formatLastMessagePreview(msg) {
   if (msg.type === "voice") return "🎙 Голосовое сообщение";
   if (msg.type === "video") return "🎥 Видео-сообщение";
+  if (msg.type === "image") return "📷 Фото";
   return msg.text || "";
 }
 
@@ -1099,12 +1315,14 @@ function performSearch(rawQuery) {
   }
   isSearchMode = true;
   toggleSidebarEmptyState(false);
+  const qNoAt = q.replace(/^@+/, "");
 
   const results = Object.values(usersCache).filter((u) => {
     if (u.uid === state.user.uid) return false;
     const name = (u.name || "").toLowerCase();
     const tag = (u.tag || "").toLowerCase();
-    return name.includes(q) || tag.includes(q);
+    const username = (u.username || "").toLowerCase();
+    return name.includes(q) || tag.includes(q) || (username && username.includes(qNoAt));
   });
 
   const list = $("chat-list");
@@ -1128,7 +1346,9 @@ function renderSearchResultItem(peer) {
   setAvatarEl(item.querySelector(".search-result-avatar"), peer, true);
   item.querySelector(".chat-item-name").innerHTML =
     escapeHtml(peer.name || "Без имени") + getBadgesHTML(peer);
-  item.querySelector(".chat-item-last").textContent = peer.tag || "";
+  item.querySelector(".chat-item-last").textContent = peer.username
+    ? "@" + peer.username + (peer.tag ? " · " + peer.tag : "")
+    : (peer.tag || "");
   item.addEventListener("click", async () => {
     await createOrOpenChat(peer);
     $("search-input").value = "";
@@ -1214,7 +1434,8 @@ function openChat(chatId, peer) {
 
 function updateChatHeaderStatus() {
   const fresh = state.chats[state.activeChatId]?.peer || state.activePeer;
-  $("chat-peer-status").textContent = fresh.online ? "в сети" : formatLastSeen(fresh.lastSeen);
+  const statusText = fresh.online ? "в сети" : formatLastSeen(fresh.lastSeen);
+  $("chat-peer-status").textContent = fresh.username ? `@${fresh.username} · ${statusText}` : statusText;
   $("chat-peer-name").innerHTML = escapeHtml(fresh.name || "Без имени") + getBadgesHTML(fresh);
 }
 function formatLastSeen(ts) {
@@ -1238,6 +1459,8 @@ function appendMessageToDOM(id, msg) {
   } else if (msg.type === "video") {
     inner = `<video class="video-circle-msg" src="${msg.mediaURL}" loop playsinline
                 onclick="this.paused ? this.play() : this.pause()" muted></video>`;
+  } else if (msg.type === "image") {
+    inner = `<img class="img-msg" src="${msg.mediaURL}" alt="Фото" loading="lazy">`;
   } else {
     inner = `<span class="msg-text"></span>`;
   }
@@ -1274,6 +1497,7 @@ function sendTextMessage() {
   const text = msgInput.value.trim();
   if (!text || !state.activeChatId) return;
   pushMessage({ type: "text", text });
+  SoundFX.messageSent();
   msgInput.value = "";
   msgInput.style.height = "auto";
   $("btn-send").classList.add("hidden");
@@ -1297,6 +1521,52 @@ function pushMessage(payload) {
 }
 
 // ============================================================================
+// ОТПРАВКА ФОТО (Firebase Storage) — кнопка 📎 в composer
+// ============================================================================
+$("btn-attach").addEventListener("click", () => {
+  if (!state.activeChatId) return;
+  $("photo-input").click();
+});
+
+$("photo-input").addEventListener("change", async (e) => {
+  const file = e.target.files[0];
+  e.target.value = ""; // сбрасываем, чтобы можно было выбрать тот же файл повторно
+  if (!file || !state.activeChatId) return;
+  if (!file.type.startsWith("image/")) { alert("Можно отправлять только изображения."); return; }
+
+  const attachBtn = $("btn-attach");
+  const originalHTML = attachBtn.innerHTML;
+  attachBtn.innerHTML = "⏳";
+  attachBtn.disabled = true;
+  try {
+    const path = `images/${state.activeChatId}/${Date.now()}-${file.name}`;
+    const fileRef = sRef(storage, path);
+    await uploadBytes(fileRef, file);
+    const url = await getDownloadURL(fileRef);
+    pushMessage({ type: "image", mediaURL: url });
+    SoundFX.messageSent();
+  } catch (err) {
+    alert("Не удалось отправить фото в Firebase Storage: " + err.message);
+  } finally {
+    attachBtn.innerHTML = originalHTML;
+    attachBtn.disabled = false;
+  }
+});
+
+// ----- полноэкранный просмотр фото (лайтбокс) -----
+function openImageLightbox(url) {
+  const box = document.createElement("div");
+  box.className = "img-lightbox";
+  box.innerHTML = `<button class="img-lightbox-close">✕</button><img src="${url}">`;
+  box.addEventListener("click", (e) => { if (e.target === box || e.target.closest(".img-lightbox-close")) box.remove(); });
+  document.body.appendChild(box);
+}
+$("messages").addEventListener("click", (e) => {
+  const img = e.target.closest(".img-msg");
+  if (img && !img.classList.contains("uploading")) openImageLightbox(img.src);
+});
+
+// ============================================================================
 // ГОЛОСОВЫЕ СООБЩЕНИЯ (MediaRecorder — audio)
 // ============================================================================
 const micBtn = $("btn-mic");
@@ -1312,12 +1582,13 @@ let isRecordingVoice = false;
 $("btn-record-cancel").addEventListener("click", () => stopRecording(false));
 
 async function startVoiceRecording() {
-  if (isRecordingVoice || !state.activeChatId) return;
+  if (isRecordingVoice || isRecordingVideoCircle || !state.activeChatId) return;
   try {
     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
     isRecordingVoice = true;
     beginRecording(stream, "voice");
     micBtn.classList.add("recording");
+    $("record-hint").textContent = "Запись голосового... отпустите, чтобы отправить";
   } catch (e) {
     alert("Нет доступа к микрофону: " + e.message);
   }
@@ -1347,7 +1618,9 @@ function beginRecording(stream, type) {
 
 function stopRecording(shouldSend) {
   isRecordingVoice = false;
+  isRecordingVideoCircle = false;
   micBtn.classList.remove("recording");
+  $("btn-video-circle").classList.remove("recording");
   clearInterval(state.recordTimerInterval);
   $("record-bar").classList.add("hidden");
   state.pendingSend = shouldSend;
@@ -1364,6 +1637,7 @@ async function onRecordingStopped() {
   $("video-circle-preview").srcObject = null;
 
   if (!state.pendingSend || state.recordedChunks.length === 0) return;
+  if (duration < 1) return; // случайное короткое нажатие — не отправляем пустышку
   const blob = new Blob(state.recordedChunks, { type: type === "voice" ? "audio/webm" : "video/webm" });
 
   try {
@@ -1372,6 +1646,7 @@ async function onRecordingStopped() {
     await uploadBytes(fileRef, blob);
     const url = await getDownloadURL(fileRef);
     pushMessage({ type, mediaURL: url, duration });
+    SoundFX.messageSent();
   } catch (e) {
     alert("Не удалось загрузить медиа в Firebase Storage: " + e.message);
   }
@@ -1412,7 +1687,7 @@ function wireVoicePlayer(root) {
 // ============================================================================
 let isRecordingVideoCircle = false;
 $("btn-video-circle").addEventListener("click", async () => {
-  if (!state.activeChatId) return;
+  if (!state.activeChatId || isRecordingVoice) return;
   if (!isRecordingVideoCircle) {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ video: { width: 480, height: 480 }, audio: true });
@@ -1422,14 +1697,12 @@ $("btn-video-circle").addEventListener("click", async () => {
       preview.srcObject = stream;
       preview.classList.remove("hidden");
       beginRecording(stream, "video");
-      isRecordingVoice = false; // reuse timer/record-bar for video too
+      $("record-hint").textContent = "Запись видео-кружочка... нажмите 🎥 ещё раз, чтобы отправить";
       $("record-bar").classList.remove("hidden");
     } catch (e) {
       alert("Нет доступа к камере: " + e.message);
     }
   } else {
-    isRecordingVideoCircle = false;
-    $("btn-video-circle").classList.remove("recording");
     stopRecording(true);
   }
 });
@@ -1443,6 +1716,19 @@ document.querySelectorAll("[data-close]").forEach((btn) =>
   btn.addEventListener("click", () => closeModal(btn.dataset.close))
 );
 
+// ----- всплывающие тост-уведомления (успех/ошибка операций) -----
+function showToast(text, type = "success") {
+  const toast = document.createElement("div");
+  toast.className = "toast toast-" + type;
+  toast.textContent = text;
+  document.body.appendChild(toast);
+  requestAnimationFrame(() => toast.classList.add("show"));
+  setTimeout(() => {
+    toast.classList.remove("show");
+    setTimeout(() => toast.remove(), 300);
+  }, 2600);
+}
+
 // ============================================================================
 // НАСТРОЙКИ ПРОФИЛЯ (имя, био, аватар, тема) — Realtime Database + Storage
 // ============================================================================
@@ -1450,7 +1736,11 @@ let pendingBadges = {};
 $("btn-open-settings").addEventListener("click", () => {
   $("settings-name").value = state.user.name || "";
   $("settings-bio").value = state.user.bio || "";
-  $("settings-tag").textContent = state.user.tag ? "Ваш ID: " + state.user.tag : "";
+  $("settings-tag").textContent = state.user.tag ? "Ваш MINK ID: " + state.user.tag : "";
+  $("settings-username").value = state.user.username || "";
+  setUsernameStatus("");
+  pendingAvatarFile = null;
+  pendingAvatarRemove = false;
   setAvatarEl($("settings-avatar-preview"), state.user, false);
   document.querySelectorAll(".theme-swatch").forEach((s) =>
     s.classList.toggle("selected", s.dataset.theme === (state.user.theme || "light"))
@@ -1478,17 +1768,77 @@ document.querySelectorAll("#badge-admin-section .toggle-switch").forEach((sw) =>
 });
 $("btn-profile-avatar").addEventListener("click", () => $("btn-open-settings").click());
 
+// ----------------------------------------------------------------------------
+// ЮЗЕРНЕЙМЫ (@username) — работают вместе с MINK ID: MINK ID выдаётся
+// автоматически и не меняется, юзернейм пользователь придумывает сам.
+// Уникальность хранится через обратный индекс /usernames/{нижний_регистр} = uid
+// ----------------------------------------------------------------------------
+const USERNAME_RE = /^[a-zA-Z][a-zA-Z0-9_]{4,31}$/; // латиница/цифры/_, начинается с буквы, 5-32 символа
+let usernameCheckToken = 0;
+let pendingUsernameValue = null; // null = не менялось; "" = очистить; строка = новое значение (валидное и свободное)
+
+function setUsernameStatus(text, cls) {
+  const el = $("username-status");
+  el.textContent = text;
+  el.className = "username-status" + (cls ? " " + cls : "");
+}
+
+function normalizeUsername(raw) {
+  return raw.trim().replace(/^@+/, "");
+}
+
+$("settings-username").addEventListener("input", () => {
+  const raw = normalizeUsername($("settings-username").value);
+  pendingUsernameValue = null; // сбрасываем, пока не подтвердим доступность
+
+  if (!raw) { setUsernameStatus("Юзернейм необязателен — можно оставить пустым", ""); pendingUsernameValue = ""; return; }
+  if (!USERNAME_RE.test(raw)) {
+    setUsernameStatus("5–32 символа: латинские буквы, цифры, _; начинается с буквы", "invalid");
+    return;
+  }
+  const lower = raw.toLowerCase();
+  if (lower === (state.user.username || "").toLowerCase()) {
+    setUsernameStatus("Это уже ваш юзернейм", "ok");
+    pendingUsernameValue = raw;
+    return;
+  }
+
+  setUsernameStatus("Проверяем доступность...", "checking");
+  const myToken = ++usernameCheckToken;
+  get(ref(db, "usernames/" + lower)).then((snap) => {
+    if (myToken !== usernameCheckToken) return; // пользователь уже печатает дальше — этот запрос устарел
+    if (snap.exists()) {
+      setUsernameStatus("@" + raw + " уже занят", "taken");
+    } else {
+      setUsernameStatus("@" + raw + " свободен", "ok");
+      pendingUsernameValue = raw;
+    }
+  }).catch(() => {
+    if (myToken === usernameCheckToken) setUsernameStatus("Не удалось проверить доступность", "invalid");
+  });
+});
+
 let pendingAvatarFile = null;
+let pendingAvatarRemove = false;
 $("settings-avatar-input").addEventListener("change", (e) => {
   const file = e.target.files[0];
+  e.target.value = ""; // сбрасываем, чтобы можно было выбрать тот же файл повторно
   if (!file) return;
   pendingAvatarFile = file;
+  pendingAvatarRemove = false;
   const reader = new FileReader();
   reader.onload = () => {
     $("settings-avatar-preview").style.backgroundImage = `url(${reader.result})`;
     $("settings-avatar-preview").textContent = "";
   };
   reader.readAsDataURL(file);
+});
+
+$("btn-remove-avatar").addEventListener("click", () => {
+  pendingAvatarFile = null;
+  pendingAvatarRemove = true;
+  $("settings-avatar-preview").style.backgroundImage = "";
+  $("settings-avatar-preview").textContent = (state.user.name || "?").trim().charAt(0).toUpperCase();
 });
 
 document.querySelectorAll(".theme-swatch").forEach((btn) => {
@@ -1511,29 +1861,76 @@ $("btn-save-settings").addEventListener("click", async () => {
   const bio = $("settings-bio").value.trim();
   const selectedTheme = document.querySelector(".theme-swatch.selected")?.dataset.theme || "light";
 
-  let avatarURL = state.user.avatarURL || "";
-  if (pendingAvatarFile) {
-    const path = `avatars/${state.user.uid}/${Date.now()}-${pendingAvatarFile.name}`;
-    const fileRef = sRef(storage, path);
-    await uploadBytes(fileRef, pendingAvatarFile);
-    avatarURL = await getDownloadURL(fileRef);
-    pendingAvatarFile = null;
+  // --- юзернейм: сохраняем, только если поле не менялось или прошло проверку доступности ---
+  const rawUsername = normalizeUsername($("settings-username").value);
+  const currentUsername = state.user.username || "";
+  const usernameChanged = rawUsername !== currentUsername;
+  if (usernameChanged && rawUsername !== "" && pendingUsernameValue !== rawUsername) {
+    showToast("Дождитесь проверки доступности юзернейма перед сохранением", "error");
+    return;
   }
 
-  const updates = { name, bio, avatarURL, theme: selectedTheme };
-  if (state.user.tag === OWNER_TAG) {
-    updates.badges = pendingBadges;
-  }
+  const saveBtn = $("btn-save-settings");
+  const originalBtnText = saveBtn.textContent;
+  saveBtn.disabled = true;
+  saveBtn.textContent = "Сохранение...";
 
-  await update(ref(db, "users/" + state.user.uid), updates);
-  state.user = { ...state.user, ...updates };
-  applyTheme(selectedTheme);
-  renderOwnAvatar();
-  // мгновенно обновляем локальный кэш — собеседники увидят бейджи в реальном
-  // времени через уже существующий подписчик subscribeAllUsersCache(), а мои
-  // собственные новые сообщения сразу подхватят бейджи из state.user
-  usersCache[state.user.uid] = { ...usersCache[state.user.uid], ...updates };
-  closeModal("settings-modal");
+  try {
+    let avatarURL = state.user.avatarURL || "";
+    if (pendingAvatarFile) {
+      const path = `avatars/${state.user.uid}/${Date.now()}-${pendingAvatarFile.name}`;
+      const fileRef = sRef(storage, path);
+      await uploadBytes(fileRef, pendingAvatarFile);
+      avatarURL = await getDownloadURL(fileRef);
+      pendingAvatarFile = null;
+      pendingAvatarRemove = false;
+    } else if (pendingAvatarRemove) {
+      avatarURL = "";
+      pendingAvatarRemove = false;
+    }
+
+    const updates = { name, bio, avatarURL, theme: selectedTheme };
+    if (state.user.tag === OWNER_TAG) {
+      updates.badges = pendingBadges;
+    }
+
+    if (usernameChanged) {
+      const lowerNew = rawUsername.toLowerCase();
+      const lowerOld = currentUsername.toLowerCase();
+      if (rawUsername !== "") {
+        // финальная проверка на гонку — вдруг ник заняли, пока были открыты настройки
+        const finalCheck = await get(ref(db, "usernames/" + lowerNew));
+        if (finalCheck.exists() && finalCheck.val() !== state.user.uid) {
+          showToast("Увы, @" + rawUsername + " только что заняли", "error");
+          saveBtn.disabled = false;
+          saveBtn.textContent = originalBtnText;
+          return;
+        }
+        await set(ref(db, "usernames/" + lowerNew), state.user.uid);
+      }
+      if (lowerOld && lowerOld !== lowerNew) {
+        await remove(ref(db, "usernames/" + lowerOld));
+      }
+      updates.username = rawUsername;
+    }
+
+    await update(ref(db, "users/" + state.user.uid), updates);
+    state.user = { ...state.user, ...updates };
+    applyTheme(selectedTheme);
+    renderOwnAvatar();
+    // мгновенно обновляем локальный кэш — собеседники увидят изменения в реальном
+    // времени через уже существующий подписчик subscribeAllUsersCache(), а мои
+    // собственные новые сообщения сразу подхватят их из state.user
+    usersCache[state.user.uid] = { ...usersCache[state.user.uid], ...updates };
+    closeModal("settings-modal");
+    showToast("Изменения успешно сохранены ✓", "success");
+  } catch (e) {
+    console.error("Не удалось сохранить настройки профиля:", e);
+    showToast("Не удалось сохранить: " + (e.code || e.message || "неизвестная ошибка"), "error");
+  } finally {
+    saveBtn.disabled = false;
+    saveBtn.textContent = originalBtnText;
+  }
 });
 
 // ============================================================================
@@ -1588,6 +1985,7 @@ async function startCall(type) {
   state.localStream.getTracks().forEach((t) => pc.addTrack(t, state.localStream));
 
   showCallModal({ peerName: peer.name, type, isIncoming: false, isCaller: true });
+  SoundFX.startRing("outgoing");
 
   const offer = await pc.createOffer();
   await pc.setLocalDescription(offer);
@@ -1603,6 +2001,8 @@ async function startCall(type) {
     if (answer && pc.signalingState !== "stable" && !pc.currentRemoteDescription) {
       await pc.setRemoteDescription(new RTCSessionDescription(answer));
       $("call-status").textContent = "Соединено";
+      $("call-avatar-big").classList.remove("ringing");
+      SoundFX.stopRing();
     }
   });
   listenRemoteCandidates(chatId, "calleeCandidates", pc);
@@ -1615,10 +2015,12 @@ function showIncomingCall(callId, call) {
     state.callType = call.type;
     state.isCaller = false;
     showCallModal({ peerName: caller.name, type: call.type, isIncoming: true, isCaller: false, avatar: caller });
+    SoundFX.startRing("incoming");
   });
 }
 
 $("btn-call-accept").addEventListener("click", async () => {
+  SoundFX.stopRing();
   const callId = state.currentCallId;
   const callSnap = await get(ref(db, `calls/${callId}`));
   const call = callSnap.val();
@@ -1643,11 +2045,13 @@ $("btn-call-accept").addEventListener("click", async () => {
 
   listenRemoteCandidates(callId, "callerCandidates", pc);
   $("call-status").textContent = "Соединено";
+  $("call-avatar-big").classList.remove("ringing");
   $("btn-call-accept").classList.add("hidden");
   attachLocalPreview();
 });
 
 $("btn-call-decline").addEventListener("click", () => {
+  SoundFX.stopRing();
   if (state.currentCallId) update(ref(db, `calls/${state.currentCallId}`), { status: "declined" });
   endCall(true);
 });
@@ -1698,6 +2102,7 @@ function showCallModal({ peerName, type, isIncoming, isCaller, avatar }) {
   $("call-status").textContent = isIncoming ? `Входящий ${type === "video" ? "видео" : ""}звонок` : "Вызов...";
   setAvatarEl($("call-avatar-big"), avatar || { name: peerName }, false);
   $("call-avatar-big").classList.remove("hidden");
+  $("call-avatar-big").classList.toggle("ringing", true);
   $("remote-video").classList.add("hidden");
   $("local-video").classList.add("hidden");
   $("btn-call-accept").classList.toggle("hidden", !isIncoming);
@@ -1715,6 +2120,7 @@ $("btn-call-mute").addEventListener("click", () => {
 });
 
 function endCall(cleanupDb) {
+  SoundFX.stopRing();
   if (state.pc) { state.pc.close(); state.pc = null; }
   if (state.localStream) { state.localStream.getTracks().forEach((t) => t.stop()); state.localStream = null; }
   state.candidatesUnsubs.forEach((fn) => fn());
